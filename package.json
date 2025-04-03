@@ -9,9 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "react-native-svg": "^13.9.0",
-    "expo-asset": "~8.10.1",
     "@expo/metro-runtime": "~4.0.1",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-navigation/bottom-tabs": "^7.3.5",
     "@react-navigation/native": "^7.1.1",
     "@react-navigation/native-stack": "^7.3.5",
@@ -20,21 +19,30 @@
     "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.8.4",
     "expo": "~52.0.42",
+    "expo-apple-authentication": "^7.1.3",
+    "expo-asset": "~8.10.1",
+    "expo-auth-session": "^6.0.3",
+    "expo-barcode-scanner": "^13.0.1",
+    "expo-camera": "^16.0.18",
+    "expo-facebook": "^12.2.0",
     "expo-file-system": "^18.0.12",
     "expo-image-picker": "^16.0.6",
     "expo-linear-gradient": "^14.0.2",
     "expo-location": "^18.0.10",
     "expo-notifications": "^0.29.14",
     "expo-status-bar": "~2.0.1",
+    "expo-web-browser": "^14.0.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.8",
     "react-native-safe-area-context": "^5.3.0",
     "react-native-screens": "^4.10.0",
+    "react-native-svg": "^13.9.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
-    "react-redux": "^9.2.0"
+    "react-redux": "^9.2.0",
+    "expo-dev-client": "~5.0.19"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

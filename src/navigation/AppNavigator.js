@@ -29,8 +29,10 @@ const TabIcon = ({ iconName, label, focused }) => {
     <View style={{ 
       alignItems: 'center', 
       justifyContent: 'center', 
-      paddingTop: Platform.OS === 'ios' ? 12 : 10,
-      paddingBottom: Platform.OS === 'ios' ? 5 : 0
+      paddingTop: Platform.OS === 'ios' ? 10 : 8,
+      paddingBottom: Platform.OS === 'ios' ? 5 : 2,
+      height: Platform.OS === 'ios' ? 60 : 56,
+      width: 80 // Fixed width for all tabs
     }}>
       <MaterialCommunityIcons 
         name={iconName} 
@@ -40,7 +42,8 @@ const TabIcon = ({ iconName, label, focused }) => {
       <Text style={{ 
         fontSize: 12,
         color: focused ? '#2E7D32' : '#666',
-        marginTop: 4
+        marginTop: 4,
+        textAlign: 'center'
       }}>
         {label}
       </Text>
@@ -146,14 +149,23 @@ const TabNavigator = () => {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#EEEEEE',
+          paddingHorizontal: 10, // Add horizontal padding
+          justifyContent: 'space-between', // Distribute items evenly
           ...Platform.select({
             ios: {
               shadowColor: '#000',
               shadowOffset: { width: 0, height: -2 },
               shadowOpacity: 0.05,
               shadowRadius: 2,
+            },
+            android: {
+              elevation: 8, // Increase elevation for better shadow on Android
             }
           })
+        },
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
         },
       })}
     >

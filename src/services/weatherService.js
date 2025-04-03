@@ -1,31 +1,13 @@
 import axios from 'axios';
 import * as Location from 'expo-location';
 
+// WeatherAPI.com API key
+// In a production app, you would store this in a secure environment variable
+const API_KEY = 'ff54480d130646b6bd6183701250304'; // Replace with your actual API key
+const BASE_URL = 'http://api.weatherapi.com/v1';
+
 // This service handles weather API integration
 // In a production app, you would use a real weather API with your API key
-
-const MOCK_WEATHER_DATA = {
-  location: 'New York, NY',
-  current: {
-    temp: 22,
-    humidity: 65,
-    condition: 'Partly Cloudy',
-    icon: '04d',
-  },
-  forecast: [
-    { day: 'Today', temp: 22, condition: 'Partly Cloudy', icon: '04d', precipitation: 10 },
-    { day: 'Tomorrow', temp: 25, condition: 'Sunny', icon: '01d', precipitation: 0 },
-    { day: 'Wednesday', temp: 20, condition: 'Rain', icon: '10d', precipitation: 80 },
-    { day: 'Thursday', temp: 18, condition: 'Rain', icon: '10d', precipitation: 60 },
-    { day: 'Friday', temp: 21, condition: 'Partly Cloudy', icon: '04d', precipitation: 20 },
-  ],
-  alerts: [
-    {
-      type: 'rain',
-      message: 'Heavy rain expected on Wednesday. Consider moving outdoor plants inside.',
-    },
-  ],
-};
 
 // Get user's current location
 export const getCurrentLocation = async () => {
@@ -49,22 +31,84 @@ export const getCurrentLocation = async () => {
   }
 };
 
-// Fetch weather data from API
+// Fetch weather data from WeatherAPI.com
 export const fetchWeatherData = async (coordinates) => {
   try {
-    // In a real app, you would use a real weather API
-    // Example:
-    // const response = await axios.get(
-    //   `https://api.openweathermap.org/data/2.5/weather?lat=${coordinates.latitude}&lon=${coordinates.longitude}&units=metric&appid=YOUR_API_KEY`
-    // );
-    // return response.data;
+    // Build query parameter
+    const query = `${coordinates.latitude},${coordinates.longitude}`;
     
-    // For demo purposes, return mock data
-    return MOCK_WEATHER_DATA;
+    // Make API request to get forecast for 5 days
+    const response = await axios.get(`${BASE_URL}/forecast.json`, {
+      params: {
+        key: API_KEY,
+        q: query,
+        days: 5,
+        aqi: 'yes', // Include air quality data
+        alerts: 'yes' // Include weather alerts
+      }
+    });
+    
+    // Format response data to match our app's structure
+    return formatWeatherData(response.data);
   } catch (error) {
     console.error('Error fetching weather data:', error);
     throw error;
   }
+};
+
+// Format the API response to match our app's data structure
+const formatWeatherData = (apiData) => {
+  // Get day names for the forecast
+  const getDayName = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  };
+  
+  // Format forecast data
+  const formattedForecast = apiData.forecast.forecastday.map(day => ({
+    day: day.date === apiData.forecast.forecastday[0].date ? 'Today' : getDayName(day.date),
+    temp: Math.round(day.day.avgtemp_c),
+    condition: day.day.condition.text,
+    icon: day.day.condition.icon,
+    precipitation: day.day.daily_chance_of_rain,
+    date: day.date
+  }));
+  
+  // Format alerts if any
+  const formattedAlerts = [];
+  if (apiData.alerts && apiData.alerts.alert && apiData.alerts.alert.length > 0) {
+    apiData.alerts.alert.forEach(alert => {
+      formattedAlerts.push({
+        type: alert.category.toLowerCase(),
+        message: alert.desc,
+      });
+    });
+  }
+  
+  // Return formatted data
+  return {
+    location: `${apiData.location.name}, ${apiData.location.region}`,
+    current: {
+      temp: Math.round(apiData.current.temp_c),
+      humidity: apiData.current.humidity,
+      condition: apiData.current.condition.text,
+      icon: apiData.current.condition.icon,
+      wind_kph: apiData.current.wind_kph,
+      wind_dir: apiData.current.wind_dir,
+      pressure_mb: apiData.current.pressure_mb,
+      feelslike_c: apiData.current.feelslike_c,
+      uv: apiData.current.uv,
+      air_quality: apiData.current.air_quality ? {
+        co: apiData.current.air_quality.co,
+        pm2_5: apiData.current.air_quality.pm2_5,
+        pm10: apiData.current.air_quality.pm10,
+        us_epa_index: apiData.current.air_quality.us_epa_index,
+      } : null
+    },
+    forecast: formattedForecast,
+    alerts: formattedAlerts,
+    lastUpdated: new Date().toISOString()
+  };
 };
 
 // Get plant care recommendations based on weather

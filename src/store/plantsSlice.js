@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import plantService from '../services/plantService';
 
 // Mock plant data - in a real app, this would come from an API
 const initialPlants = [
@@ -61,33 +62,54 @@ const initialPlants = [
   },
 ];
 
-// Async thunk for fetching plants (simulated API call)
+// Async thunk for fetching plants from API
 export const fetchPlants = createAsyncThunk(
   'plants/fetchPlants',
-  async () => {
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(initialPlants);
-      }, 500);
-    });
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await plantService.fetchPlants();
+      return data;
+    } catch (error) {
+      console.error('Error fetching plants:', error);
+      // If API fails, return mock data as fallback
+      return rejectWithValue('Failed to fetch plants from API');
+    }
   }
 );
 
-// Async thunk for adding a plant (simulated API call)
+// Async thunk for searching plants
+export const searchPlants = createAsyncThunk(
+  'plants/searchPlants',
+  async (query, { rejectWithValue }) => {
+    try {
+      const data = await plantService.searchPlants(query);
+      return data;
+    } catch (error) {
+      console.error('Error searching plants:', error);
+      return rejectWithValue('Failed to search plants');
+    }
+  }
+);
+
+// Async thunk for adding a plant
 export const addPlant = createAsyncThunk(
   'plants/addPlant',
-  async (plant) => {
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newPlant = {
-          ...plant,
-          id: Date.now().toString(),
-        };
-        resolve(newPlant);
-      }, 500);
-    });
+  async (plant, { rejectWithValue }) => {
+    try {
+      // In a real app with full backend, you would save to API here
+      // For now, format the plant with proper structure
+      const plantData = {
+        ...plant,
+        id: plant.id || Date.now().toString(),
+        lastWatered: new Date().toISOString().split('T')[0],
+        nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        isFavorite: false,
+      };
+      
+      return plantData;
+    } catch (error) {
+      return rejectWithValue('Failed to add plant');
+    }
   }
 );
 
@@ -104,22 +126,62 @@ export const updatePlant = createAsyncThunk(
   }
 );
 
+// Async thunk for removing a plant
+export const removePlant = createAsyncThunk(
+  'plants/removePlant',
+  async (plantId, { rejectWithValue }) => {
+    try {
+      // In a real app with full backend, you would delete from API here
+      // For now, just return the plantId to remove from state
+      return plantId;
+    } catch (error) {
+      return rejectWithValue('Failed to remove plant');
+    }
+  }
+);
+
+export const toggleFavorite = createAsyncThunk(
+  'plants/toggleFavorite',
+  async (plantId, { getState }) => {
+    try {
+      const { plants } = getState();
+      // Find if plant exists in user plants - if so, just toggle favorite
+      const existingUserPlant = plants.userPlants.find(p => p.id === plantId);
+      if (existingUserPlant) {
+        return { plantId, isFavorite: !existingUserPlant.isFavorite };
+      }
+      
+      // If not in user plants, find in all plants and add to user plants
+      const plantToFavorite = plants.plants.find(p => p.id === plantId);
+      if (plantToFavorite) {
+        const currentDate = new Date().toISOString().split('T')[0];
+        return {
+          ...plantToFavorite,
+          isFavorite: true,
+          lastWatered: currentDate,
+          nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        };
+      }
+      
+      throw new Error('Plant not found');
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      throw error;
+    }
+  }
+);
+
 const plantsSlice = createSlice({
   name: 'plants',
   initialState: {
     plants: [],
     userPlants: [],
+    searchResults: [],
     status: 'idle',
+    searchStatus: 'idle',
     error: null,
   },
   reducers: {
-    toggleFavorite: (state, action) => {
-      const plantId = action.payload;
-      const plant = state.userPlants.find(p => p.id === plantId);
-      if (plant) {
-        plant.isFavorite = !plant.isFavorite;
-      }
-    },
     updateWateringDate: (state, action) => {
       const { plantId, date } = action.payload;
       const plant = state.userPlants.find(p => p.id === plantId);
@@ -149,7 +211,22 @@ const plantsSlice = createSlice({
       })
       .addCase(fetchPlants.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
+        // Fallback to mock data if API fails
+        if (state.plants.length === 0) {
+          state.plants = initialPlants;
+        }
+      })
+      .addCase(searchPlants.pending, (state) => {
+        state.searchStatus = 'loading';
+      })
+      .addCase(searchPlants.fulfilled, (state, action) => {
+        state.searchStatus = 'succeeded';
+        state.searchResults = action.payload;
+      })
+      .addCase(searchPlants.rejected, (state, action) => {
+        state.searchStatus = 'failed';
+        state.error = action.payload || action.error.message;
       })
       .addCase(addPlant.fulfilled, (state, action) => {
         state.userPlants.push(action.payload);
@@ -159,10 +236,28 @@ const plantsSlice = createSlice({
         if (index !== -1) {
           state.userPlants[index] = action.payload;
         }
+      })
+      .addCase(removePlant.fulfilled, (state, action) => {
+        state.userPlants = state.userPlants.filter(p => p.id !== action.payload);
+      })
+      .addCase(removePlant.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(toggleFavorite.fulfilled, (state, action) => {
+        // If we got a full plant object, it means we need to add it to userPlants
+        if (action.payload.name) {
+          state.userPlants.push(action.payload);
+        } else {
+          // Otherwise just toggle the favorite status
+          const plant = state.userPlants.find(p => p.id === action.payload.plantId);
+          if (plant) {
+            plant.isFavorite = action.payload.isFavorite;
+          }
+        }
       });
   },
 });
 
-export const { toggleFavorite, updateWateringDate } = plantsSlice.actions;
+export const { updateWateringDate } = plantsSlice.actions;
 
 export default plantsSlice.reducer;

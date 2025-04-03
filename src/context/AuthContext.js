@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase, getCurrentUser } from '../services/supabaseService';
+import { supabase } from '../services/supabaseService';
 
 // Create the authentication context
 const AuthContext = createContext(null);
@@ -48,13 +48,13 @@ export const AuthProvider = ({ children }) => {
   const checkUser = async () => {
     try {
       setLoading(true);
-      const { user: currentUser, error: userError } = await getCurrentUser();
+      const { data, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
         throw userError;
       }
       
-      setUser(currentUser);
+      setUser(data?.user);
     } catch (err) {
       setError(err.message);
     } finally {

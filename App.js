@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import store from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
-import { useNotificationListeners } from './src/services/notificationService';
+import { useNotificationListeners, registerForPushNotifications } from './src/services/notificationService';
 import { markReminderCompleted } from './src/store/remindersSlice';
 
 import 'react-native-url-polyfill/auto';
@@ -12,6 +12,12 @@ import 'react-native-url-polyfill/auto';
 // Wrap the app with notification listeners and theme
 function AppWithNotifications() {
   
+  // Initialize notification permissions on app load
+  useEffect(() => {
+    registerForPushNotifications().catch(error => {
+      console.log('Failed to register for push notifications:', error);
+    });
+  }, []);
   
   // Handle received notifications when app is in foreground
   const handleNotificationReceived = useCallback((notification) => {

@@ -1,30 +1,42 @@
 import { createClient } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Replace these with your Supabase project URL and anon key
 const supabaseUrl = 'https://khceypvgonsvwitzxgwh.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtoY2V5cHZnb25zdndpdHp4Z3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI1NjQzMjgsImV4cCI6MjA1ODE0MDMyOH0.ZM1gIi15q945gtkAS7h3bRFxG5YMFq3civLBWv3rqWE';
 
-// Initialize the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a custom Supabase client with AsyncStorage
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+
+// Export the supabase client
+export { supabase };
 
 // Authentication functions
-export const signUp = async (email, password, fullName) => {
+export const signUp = async (email, password, name = '') => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName,
+          full_name: name,
         },
+        emailRedirectTo: 'plantpal://login',
       },
     });
     
-    if (error) throw error;
-    return { data, error: null };
+    return { data, error };
   } catch (error) {
+    console.error('Error signing up:', error);
     return { data: null, error };
   }
 };
@@ -36,9 +48,51 @@ export const signIn = async (email, password) => {
       password,
     });
     
-    if (error) throw error;
-    return { data, error: null };
+    return { data, error };
   } catch (error) {
+    console.error('Error signing in:', error);
+    return { data: null, error };
+  }
+};
+
+export const signInWithGoogle = async (idToken) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    });
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    return { data: null, error };
+  }
+};
+
+export const signInWithApple = async (idToken) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: idToken,
+    });
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error signing in with Apple:', error);
+    return { data: null, error };
+  }
+};
+
+export const signInWithFacebook = async (accessToken) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'facebook',
+      token: accessToken,
+    });
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error signing in with Facebook:', error);
     return { data: null, error };
   }
 };
@@ -46,9 +100,9 @@ export const signIn = async (email, password) => {
 export const signOut = async () => {
   try {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    return { error: null };
+    return { error };
   } catch (error) {
+    console.error('Error signing out:', error);
     return { error };
   }
 };
@@ -59,32 +113,32 @@ export const resetPassword = async (email) => {
       redirectTo: 'plantpal://reset-password',
     });
     
-    if (error) throw error;
-    return { data, error: null };
+    return { data, error };
   } catch (error) {
+    console.error('Error resetting password:', error);
     return { data: null, error };
   }
 };
 
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return { user, error: null };
+    const { data, error } = await supabase.auth.getUser();
+    return { user: data?.user, error };
   } catch (error) {
+    console.error('Error getting current user:', error);
     return { user: null, error };
   }
 };
 
-export const updateUserProfile = async (userData) => {
+export const updateUserProfile = async (updates) => {
   try {
     const { data, error } = await supabase.auth.updateUser({
-      data: userData,
+      data: updates,
     });
     
-    if (error) throw error;
-    return { data, error: null };
+    return { data, error };
   } catch (error) {
+    console.error('Error updating user profile:', error);
     return { data: null, error };
   }
 };
@@ -209,4 +263,20 @@ export const uploadProfileImage = async (uri) => {
     // Return the error but don't show success message in the UI
     return { publicUrl: null, error };
   }
+};
+
+export default {
+  supabase,
+  signUp,
+  signIn,
+  signInWithGoogle,
+  signInWithApple,
+  signInWithFacebook,
+  signOut,
+  resetPassword,
+  getCurrentUser,
+  updateUserProfile,
+  saveThemePreference,
+  getUserThemePreference,
+  uploadProfileImage,
 };

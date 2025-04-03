@@ -12,17 +12,35 @@
       "resizeMode": "contain",
       "backgroundColor": "#4CAF50"
     },
+    "plugins": [
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow PlantPal to access your camera to scan plant barcodes."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PlantPal to access your camera to take photos of your plants."
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.plantpal.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4CAF50"
-      }
+      },
+      "package": "com.plantpal.app",
+      "permissions": ["CAMERA"]
     },
     "web": {
       "favicon": "./assets/icon.png"
-    }
+    },
+    "scheme": "plantpal"
   }
 }

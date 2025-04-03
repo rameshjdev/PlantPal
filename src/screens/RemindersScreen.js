@@ -261,18 +261,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
+  contentContainer: {
+    flex: 1,
+    paddingBottom: 80, // Add padding to prevent content from being hidden behind the button
+  },
   header: {
     backgroundColor: '#2E7D32',
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 10 : 30,
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    alignItems: 'flex-start', // Align items to the left
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
+    marginTop: Platform.OS === 'ios' ? 40 : 20, // Add margin top to push title down
   },
   filterContainer: {
     marginTop: 15,
@@ -436,10 +442,6 @@ const styles = StyleSheet.create({
         elevation: 5,
       }
     }),
-  },
-  contentContainer: {
-    flex: 1,
-    paddingBottom: 80, // Add padding to prevent content from being hidden behind the button
   },
 });
 
