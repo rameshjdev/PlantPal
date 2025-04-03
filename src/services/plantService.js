@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { PLANT_API_KEY, PLANT_API_SECRET } from '@env';
 
 // Permapeople API credentials
 // In a production app, you would store these in a secure environment variable
-const API_KEY_ID = 'GPfrJNXBoPJk'; // Replace with your actual API key ID
-const API_KEY_SECRET = '700d1598-739f-4b46-ae1b-a74ddecfc687'; // Replace with your actual API key secret
+const API_KEY_ID = PLANT_API_KEY; // Replace with your actual API key ID
+const API_KEY_SECRET = PLANT_API_SECRET; // Replace with your actual API key secret
 const BASE_URL = 'https://permapeople.org/api';
 
 // Axios instance with auth headers

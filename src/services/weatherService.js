@@ -1,9 +1,9 @@
 import axios from 'axios';
 import * as Location from 'expo-location';
-
+import { WEATHER_API_KEY } from '@env';
 // WeatherAPI.com API key
 // In a production app, you would store this in a secure environment variable
-const API_KEY = 'ff54480d130646b6bd6183701250304'; // Replace with your actual API key
+const API_KEY = WEATHER_API_KEY; // Replace with your actual API key
 const BASE_URL = 'http://api.weatherapi.com/v1';
 
 // This service handles weather API integration

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
@@ -6,17 +6,40 @@ import store from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import { useNotificationListeners, registerForPushNotifications } from './src/services/notificationService';
 import { markReminderCompleted } from './src/store/remindersSlice';
+import SplashScreen from './src/screens/SplashScreen';
+import * as SplashScreenExpo from 'expo-splash-screen';
 
 import 'react-native-url-polyfill/auto';
 
+// Prevent the splash screen from auto hiding
+SplashScreenExpo.preventAutoHideAsync().catch(console.warn);
+
 // Wrap the app with notification listeners and theme
 function AppWithNotifications() {
+  const [isAppReady, setIsAppReady] = useState(false);
   
   // Initialize notification permissions on app load
   useEffect(() => {
-    registerForPushNotifications().catch(error => {
-      console.log('Failed to register for push notifications:', error);
-    });
+    async function prepare() {
+      try {
+        // Prepare your app - load necessary data, etc.
+        await registerForPushNotifications().catch(error => {
+          console.log('Failed to register for push notifications:', error);
+        });
+        
+        // Artificially delay for a smooth startup experience
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (e) {
+        console.warn('Error during app initialization:', e);
+      } finally {
+        // Tell the application to render
+        setIsAppReady(true);
+        // Hide the native splash screen
+        await SplashScreenExpo.hideAsync().catch(console.warn);
+      }
+    }
+
+    prepare();
   }, []);
   
   // Handle received notifications when app is in foreground
@@ -55,9 +78,17 @@ function AppWithNotifications() {
   // Set up notification listeners
   useNotificationListeners(handleNotificationReceived, handleNotificationResponse);
 
+  const handleSplashScreenAnimationComplete = () => {
+    // No need to do anything here since our custom splash screen animation is already done
+  };
+
+  if (!isAppReady) {
+    return <SplashScreen onAnimationComplete={handleSplashScreenAnimationComplete} />;
+  }
+
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <AppNavigator />
     </>
   );

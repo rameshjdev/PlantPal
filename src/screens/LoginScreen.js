@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  Image, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  ActivityIndicator, 
+  Alert, 
+  Dimensions,
+  Animated,
+  StatusBar
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signIn } from '../services/supabaseService';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { BlurView } from 'expo-blur';
 // Temporarily comment out these imports until we have proper development builds
 // import * as WebBrowser from 'expo-web-browser';
 // import * as Google from 'expo-auth-session/providers/google';
@@ -12,7 +28,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 // WebBrowser.maybeCompleteAuthSession();
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -23,25 +39,26 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Animation values
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
-  // Comment out Google Auth Hook for now
-  // const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-  //   expoClientId: 'YOUR_EXPO_CLIENT_ID',
-  //   iosClientId: 'YOUR_IOS_CLIENT_ID',
-  //   androidClientId: 'YOUR_ANDROID_CLIENT_ID',
-  //   webClientId: 'YOUR_WEB_CLIENT_ID',
-  // });
-
-  // Initialize Facebook SDK
-  // const initializeFacebook = async () => {
-  //   try {
-  //     await Facebook.initializeAsync({
-  //       appId: 'YOUR_FACEBOOK_APP_ID',
-  //     });
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // };
+  useEffect(() => {
+    // Start animations when component mounts
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -97,101 +114,49 @@ const LoginScreen = () => {
   // Placeholder functions for social sign in
   const handleGoogleSignIn = async () => {
     Alert.alert('Coming Soon', 'Google sign in will be available in the next update.');
-    // try {
-    //   setSocialLoading(true);
-    //   const result = await googlePromptAsync();
-    //   
-    //   if (result.type === 'success') {
-    //     const { id_token } = result.params;
-    //     const { error } = await signInWithGoogle(id_token);
-    //     
-    //     if (error) {
-    //       Alert.alert('Google Sign In Failed', error.message);
-    //     } else {
-    //       console.log('Google sign in successful');
-    //     }
-    //   }
-    // } catch (error) {
-    //   Alert.alert('Google Sign In Failed', error.message);
-    // } finally {
-    //   setSocialLoading(false);
-    // }
   };
 
-  // Facebook Sign In
   const handleFacebookSignIn = async () => {
     Alert.alert('Coming Soon', 'Facebook sign in will be available in the next update.');
-    // try {
-    //   setSocialLoading(true);
-    //   await initializeFacebook();
-    //   
-    //   const { type, token } = await Facebook.logInWithReadPermissionsAsync({
-    //     permissions: ['public_profile', 'email'],
-    //   });
-    //   
-    //   if (type === 'success') {
-    //     const { error } = await signInWithFacebook(token);
-    //     
-    //     if (error) {
-    //       Alert.alert('Facebook Sign In Failed', error.message);
-    //     } else {
-    //       console.log('Facebook sign in successful');
-    //     }
-    //   }
-    // } catch (error) {
-    //   Alert.alert('Facebook Sign In Failed', error.message);
-    // } finally {
-    //   setSocialLoading(false);
-    // }
   };
 
-  // Apple Sign In
   const handleAppleSignIn = async () => {
     Alert.alert('Coming Soon', 'Apple sign in will be available in the next update.');
-    // try {
-    //   setSocialLoading(true);
-    //   
-    //   const credential = await AppleAuthentication.signInAsync({
-    //     requestedScopes: [
-    //       AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-    //       AppleAuthentication.AppleAuthenticationScope.EMAIL,
-    //     ],
-    //   });
-    //   
-    //   // Use the credential.identityToken to sign in with Supabase
-    //   const { error } = await signInWithApple(credential.identityToken);
-    //   
-    //   if (error) {
-    //     Alert.alert('Apple Sign In Failed', error.message);
-    //   } else {
-    //     console.log('Apple sign in successful');
-    //   }
-    // } catch (error) {
-    //   // Handle error based on error.code
-    //   if (error.code === 'ERR_CANCELED') {
-    //     // User canceled the sign-in flow
-    //   } else {
-    //     Alert.alert('Apple Sign In Failed', error.message);
-    //   }
-    // } finally {
-    //   setSocialLoading(false);
-    // }
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#3F9E7A', '#2E7D32', '#1B5E20']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBackground}
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      
+      {/* Background */}
+      <Image 
+        source={require('../../assets/monstera.png')} 
+        style={styles.backgroundImage} 
+        resizeMode="cover"
       />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.3)', 'rgba(0,90,50,0.8)']}
+        style={styles.gradientOverlay}
+      />
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidContainer}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.logoContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer} 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo and Brand */}
+          <Animated.View 
+            style={[
+              styles.logoContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
             <Image 
               source={require('../../assets/icon.png')} 
               style={styles.logo} 
@@ -199,117 +164,119 @@ const LoginScreen = () => {
             />
             <Text style={styles.appName}>PlantPal</Text>
             <Text style={styles.tagline}>Your plant journey begins here</Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.formContainer}>
-            <Text style={styles.welcomeText}>Welcome</Text>
-            
-            <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="email-outline" size={22} color="#4CAF50" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor="#90A4AE"
-                />
-              </View>
-              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="lock-outline" size={22} color="#4CAF50" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#90A4AE"
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
-                  <MaterialCommunityIcons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={22} 
-                    color="#90A4AE" 
-                  />
-                </TouchableOpacity>
-              </View>
-              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-            </View>
-
-            <TouchableOpacity style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.loginButton} 
-              onPress={handleLogin}
-              disabled={loading || socialLoading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.loginButtonText}>Log In</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.divider} />
-            </View>
-
-            <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity 
-                style={styles.socialButton}
-                onPress={handleGoogleSignIn}
-                disabled={socialLoading}
-              >
-                <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
-              </TouchableOpacity>
+          {/* Form Container */}
+          <Animated.View 
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+              <Text style={styles.welcomeText}>Welcome Back</Text>
               
-              {Platform.OS === 'ios' && (
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="email-outline" size={22} color="#FFFFFF" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholderTextColor="rgba(255,255,255,0.6)"
+                  />
+                </View>
+                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="lock-outline" size={22} color="#FFFFFF" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    placeholderTextColor="rgba(255,255,255,0.6)"
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
+                    <MaterialCommunityIcons 
+                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={22} 
+                      color="rgba(255,255,255,0.8)" 
+                    />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              </View>
+
+              <TouchableOpacity style={styles.forgotPasswordContainer}>
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <View style={styles.socialButtonsContainer}>
                 <TouchableOpacity 
                   style={styles.socialButton}
-                  onPress={handleAppleSignIn}
+                  onPress={handleGoogleSignIn}
                   disabled={socialLoading}
                 >
-                  <MaterialCommunityIcons name="apple" size={24} color="#000000" />
+                  <MaterialCommunityIcons name="google" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-              )}
-              
-              <TouchableOpacity 
-                style={styles.socialButton}
-                onPress={handleFacebookSignIn}
-                disabled={socialLoading}
-              >
-                <MaterialCommunityIcons name="facebook" size={24} color="#4267B2" />
-              </TouchableOpacity>
-            </View>
-
+                
+                <TouchableOpacity 
+                  style={styles.socialButton}
+                  onPress={handleFacebookSignIn}
+                  disabled={socialLoading}
+                >
+                  <MaterialCommunityIcons name="facebook" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity 
+                    style={styles.socialButton}
+                    onPress={handleAppleSignIn}
+                    disabled={socialLoading}
+                  >
+                    <MaterialCommunityIcons name="apple" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </BlurView>
+            
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account? </Text>
+              <Text style={styles.signupText}>Don't have an account?</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
                 <Text style={styles.signupLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-      
-      {socialLoading && (
-        <View style={styles.socialLoadingOverlay}>
-          <View style={styles.socialLoadingContainer}>
-            <ActivityIndicator size="large" color="#2E7D32" />
-            <Text style={styles.socialLoadingText}>Signing in...</Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -317,114 +284,122 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
-  gradientBackground: {
+  backgroundImage: {
     position: 'absolute',
-    height: '50%',
-    width: '100%',
-    top: 0,
+    width: width,
+    height: height,
+    opacity: 0.9,
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    width: width,
+    height: height,
   },
   keyboardAvoidContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 30,
+    paddingTop: height * 0.08,
+    paddingBottom: 24,
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 40,
+    marginTop: height * 0.05,
+    marginBottom: height * 0.03,
   },
   logo: {
-    width: 90,
-    height: 90,
+    width: 100,
+    height: 100,
     marginBottom: 16,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   tagline: {
     fontSize: 16,
-    color: '#E8F5E9',
-    fontWeight: '500',
+    color: '#FFFFFF',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   formContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 30,
-    marginTop: 30,
-    flex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+  },
+  blurContainer: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   welcomeText: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1B5E20',
-    marginBottom: 30,
+    color: '#FFFFFF',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 58,
+    padding: 4,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   inputIcon: {
-    marginRight: 12,
+    padding: 10,
   },
   input: {
     flex: 1,
+    height: 50,
+    color: '#FFFFFF',
+    paddingLeft: 8,
     fontSize: 16,
-    color: '#424242',
   },
   passwordToggle: {
     padding: 10,
   },
   errorText: {
-    color: '#D32F2F',
-    fontSize: 12,
+    color: '#FF6B6B',
     marginTop: 4,
-    marginLeft: 4,
+    marginLeft: 12,
+    fontSize: 12,
   },
   forgotPasswordContainer: {
-    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: '#4CAF50',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
   },
   loginButton: {
     backgroundColor: '#2E7D32',
-    height: 56,
     borderRadius: 12,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#2E7D32',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   loginButtonText: {
     color: '#FFFFFF',
@@ -439,75 +414,43 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   dividerText: {
-    paddingHorizontal: 10,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginHorizontal: 16,
     fontSize: 14,
   },
   socialButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 30,
   },
   socialButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#FFFFFF',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    paddingVertical: 16,
   },
   signupText: {
-    color: '#757575',
-    fontSize: 15,
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginRight: 4,
   },
   signupLink: {
-    color: '#2E7D32',
-    fontSize: 15,
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  socialLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  socialLoadingContainer: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-    width: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  socialLoadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
 

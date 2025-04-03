@@ -18,6 +18,7 @@ import RemindersScreen from '../screens/RemindersScreen';
 import WeatherScreen from '../screens/WeatherScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import SplashScreen from '../screens/SplashScreen';
 
 // Create navigators
 const Stack = createNativeStackNavigator();
@@ -189,13 +190,28 @@ const MainApp = () => {
 // Main navigation component that uses the auth context
 const MainNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
+  const [showSplash, setShowSplash] = React.useState(true);
 
-  // Show loading indicator while checking authentication status
-  if (loading) {
+  React.useEffect(() => {
+    // Show splash for minimum 1 second instead of 2 for faster development
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show splash screen while loading or during the minimum splash time
+  if (showSplash || loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#E8F5E9' }}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-      </View>
+      <SplashScreen 
+        onAnimationComplete={() => {
+          // We can end the splash show early if user is already authenticated
+          if (!loading && isAuthenticated) {
+            setShowSplash(false);
+          }
+        }} 
+      />
     );
   }
 
