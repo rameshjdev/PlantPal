@@ -178,8 +178,27 @@ export const schedulePlantCareReminder = async (reminder) => {
     } else {
       // For other frequencies, we'll use a date trigger and reschedule after completion
       // Parse the nextDue date
-      const nextDueDate = new Date(reminder.nextDue);
+      let nextDueDate = new Date(reminder.nextDue);
       nextDueDate.setHours(hours, minutes, 0, 0);
+      
+      // Ensure the date is in the future
+      const now = new Date();
+      if (nextDueDate <= now) {
+        // If the date is in the past, set it to tomorrow same time
+        nextDueDate = new Date();
+        nextDueDate.setDate(nextDueDate.getDate() + 1);
+        nextDueDate.setHours(hours, minutes, 0, 0);
+        console.log(`Adjusted past due date to future: ${nextDueDate}`);
+      }
+      
+      // Ensure there's at least a 60-second interval
+      const minTimeIntervalInSeconds = 60;
+      const diffInSeconds = Math.floor((nextDueDate - now) / 1000);
+      
+      if (diffInSeconds < minTimeIntervalInSeconds) {
+        nextDueDate = new Date(now.getTime() + minTimeIntervalInSeconds * 1000);
+        console.log(`Adjusted time interval to minimum 60 seconds: ${nextDueDate}`);
+      }
       
       trigger = nextDueDate;
     }

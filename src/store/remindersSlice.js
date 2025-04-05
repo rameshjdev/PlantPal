@@ -20,11 +20,8 @@ export const addReminder = createAsyncThunk(
     // In a real app, this would be an API call
     return new Promise((resolve) => {
       setTimeout(() => {
-        const newReminder = {
-          ...reminder,
-          id: Date.now().toString(),
-        };
-        resolve(newReminder);
+        // Use the provided ID instead of generating a new one
+        resolve(reminder);
       }, 500);
     });
   }

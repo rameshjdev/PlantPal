@@ -56,16 +56,27 @@ const PlantListScreen = ({ route }) => {
     try {
       setLoading(true);
       
-      // If it's a search query, use searchPlants, otherwise use fetchPlants
-      const data = category.startsWith('Search:') 
-        ? await plantService.searchPlants(category.replace('Search:', '').trim())
-        : await plantService.fetchPlants(lastId);
-      
-      if (data.length === 0) {
-        setHasMore(false);
+      // Check if category exists before using startsWith
+      if (category && typeof category === 'string' && category.startsWith('Search:')) {
+        // It's a search query, use searchPlants
+        const data = await plantService.searchPlants(category.replace('Search:', '').trim());
+        
+        if (data.length === 0) {
+          setHasMore(false);
+        } else {
+          setPlants(prevPlants => lastId ? [...prevPlants, ...data] : data);
+          setLastId(data.length > 0 ? data[data.length - 1].id : null);
+        }
       } else {
-        setPlants(prevPlants => lastId ? [...prevPlants, ...data] : data);
-        setLastId(data.length > 0 ? data[data.length - 1].id : null);
+        // Regular fetch plants
+        const data = await plantService.fetchPlants(lastId);
+        
+        if (data.length === 0) {
+          setHasMore(false);
+        } else {
+          setPlants(prevPlants => lastId ? [...prevPlants, ...data] : data);
+          setLastId(data.length > 0 ? data[data.length - 1].id : null);
+        }
       }
       
       setLoading(false);
@@ -93,7 +104,7 @@ const PlantListScreen = ({ route }) => {
     // First filter by category
     let filtered = plants;
     
-    if (category !== 'All Plants' && !category.startsWith('Search:')) {
+    if (category && typeof category === 'string' && category !== 'All Plants' && !category.startsWith('Search:')) {
       // Map category names to filtering functions
       const categoryMap = {
         'Indoor Plants': plant => {
@@ -541,7 +552,11 @@ const PlantListScreen = ({ route }) => {
 
   // Render footer with loading indicator when loading more plants
   const renderFooter = () => {
-    if (!loading) return null;
+    // Don't show loading indicator if:
+    // 1. We're not loading
+    // 2. There are no more items to load
+    // 3. There are no filtered items (meaning search/filter returned no results)
+    if (!loading || !hasMore || filteredPlants.length === 0) return null;
     
     return (
       <View style={styles.footerContainer}>

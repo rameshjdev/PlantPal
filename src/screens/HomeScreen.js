@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, Alert } from 'react-native';
 import SvgImage from '../utils/SvgImage';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchPlants, removePlant } from '../store/plantsSlice';
+import { fetchPlants, removePlant, toggleFavorite } from '../store/plantsSlice';
 import { createSelector } from 'reselect';
 
 // Memoized selector to prevent recreation of objects
@@ -14,159 +14,15 @@ const selectUserPlants = createSelector(
   userPlants => userPlants
 );
 
-const selectAllPlants = createSelector(
-  state => state.plants.plants,
-  plants => plants
-);
-
 const HomeScreen = () => {
   const navigation = useNavigation();
-  
-  // Category definitions with icons and criteria functions
-  const categoryDefinitions = useMemo(() => [
-    { 
-      id: '1', 
-      name: 'Indoor Plants', 
-      image: require('../../assets/indoor.png'), 
-      icon: 'home',
-      filter: plant => {
-        const lightReq = plant.light.toLowerCase();
-        return !lightReq.includes('full sun only') || lightReq.includes('partial');
-      }
-    },
-    { 
-      id: '2', 
-      name: 'Succulents', 
-      image: require('../../assets/succulent.png'), 
-      icon: 'water-off',
-      filter: plant => {
-        return plant.water.includes('2-3 weeks') || 
-               (plant.data && plant.data.some(item => 
-                 item.key && item.key.toLowerCase().includes('succulent') || 
-                 (item.key === 'Plant type' && item.value && item.value.toLowerCase().includes('succulent'))
-               ));
-      }
-    },
-    { 
-      id: '3', 
-      name: 'Flowering Plants', 
-      image: require('../../assets/flowering.png'), 
-      icon: 'flower',
-      filter: plant => {
-        if (plant.data && Array.isArray(plant.data)) {
-          return plant.data.some(item => 
-            (item.key === 'Flower color' && item.value) || 
-            (item.key === 'Flowering season' && item.value)
-          );
-        }
-        return plant.name.includes('Lily') || 
-               plant.name.includes('Rose') || 
-               plant.name.includes('Orchid');
-      }
-    },
-    { 
-      id: '4', 
-      name: 'Herbs', 
-      image: require('../../assets/herbs.png'), 
-      icon: 'food-variant',
-      filter: plant => {
-        if (plant.data && Array.isArray(plant.data)) {
-          return plant.data.some(item => 
-            (item.key === 'Edible parts' && item.value && item.value.includes('Leaves')) ||
-            (item.key === 'Layer' && item.value && item.value.includes('Herbs'))
-          );
-        }
-        return plant.name.includes('Mint') || 
-               plant.name.includes('Basil') || 
-               plant.name.includes('Thyme') ||
-               plant.name.includes('Oregano') ||
-               plant.name.includes('Rosemary');
-      }
-    },
-    { 
-      id: '5', 
-      name: 'Air Purifying', 
-      image: require('../../assets/indoor.png'), 
-      icon: 'air-filter',
-      filter: plant => {
-        const airPurifiers = ['Snake Plant', 'Pothos', 'Peace Lily', 'Spider Plant', 'Dracaena', 'Fern', 'ZZ Plant', 'Rubber Plant'];
-        return airPurifiers.some(name => plant.name.includes(name));
-      }
-    },
-    { 
-      id: '6', 
-      name: 'Low Light Plants', 
-      image: require('../../assets/snake_plant.png'), 
-      icon: 'weather-sunset',
-      filter: plant => {
-        return plant.light.toLowerCase().includes('low') || 
-               plant.name.includes('ZZ Plant') || 
-               plant.name.includes('Snake Plant') || 
-               plant.name.includes('Pothos');
-      }
-    },
-    { 
-      id: '7', 
-      name: 'Tropical Plants', 
-      image: require('../../assets/monstera.png'), 
-      icon: 'palm-tree',
-      filter: plant => {
-        const tropicalPlants = ['Monstera', 'Palm', 'Philodendron', 'Calathea', 'Anthurium', 'Bird of Paradise'];
-        return tropicalPlants.some(name => plant.name.includes(name)) ||
-               (plant.data && plant.data.some(item => 
-                 item.value && item.value.toLowerCase().includes('tropical')
-               ));
-      }
-    },
-    { 
-      id: '8', 
-      name: 'Pet Friendly', 
-      image: require('../../assets/peace_lily.png'), 
-      icon: 'paw',
-      filter: plant => {
-        const petFriendly = ['Spider Plant', 'Boston Fern', 'Areca Palm', 'Calathea', 'Christmas Cactus'];
-        return petFriendly.some(name => plant.name.includes(name)) ||
-               (plant.data && plant.data.some(item => 
-                 (item.key === 'Toxicity' && item.value && item.value.toLowerCase().includes('non-toxic'))
-               ));
-      }
-    },
-  ], []);
-
   const dispatch = useDispatch();
   
   // Use memoized selectors to prevent unnecessary rerenders
   const myPlants = useSelector(selectUserPlants);
-  const allPlants = useSelector(selectAllPlants);
-  
-  // Active categories with at least one matching plant
-  const [activeCategories, setActiveCategories] = useState([]);
-  const [plantCounts, setPlantCounts] = useState({});
   
   // State to track plant selected for potential deletion
   const [selectedPlantId, setSelectedPlantId] = useState(null);
-
-  useEffect(() => {
-    dispatch(fetchPlants());
-  }, [dispatch]);
-
-  // Calculate active categories and plant counts when allPlants changes
-  useEffect(() => {
-    if (allPlants && allPlants.length > 0) {
-      // Determine which categories have at least one matching plant
-      const active = categoryDefinitions.filter(category => 
-        allPlants.some(plant => category.filter(plant))
-      );
-      setActiveCategories(active);
-      
-      // Calculate counts for each category
-      const counts = {};
-      categoryDefinitions.forEach(category => {
-        counts[category.name] = allPlants.filter(category.filter).length;
-      });
-      setPlantCounts(counts);
-    }
-  }, [allPlants, categoryDefinitions]);
 
   // Handle long press on a plant item to show delete option
   const handlePlantLongPress = (plantId) => {
@@ -204,28 +60,25 @@ const HomeScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            dispatch(removePlant(plantId));
+            // Get the plant before removing it
+            const plantToRemove = myPlants.find(plant => plant.id === plantId);
+            
+            if (plantToRemove) {
+              // If the plant is a favorite, toggle its favorite status to false before removing
+              if (plantToRemove.isFavorite) {
+                dispatch(toggleFavorite(plantId));
+              }
+              
+              // Then remove the plant from user plants
+              dispatch(removePlant(plantId));
+            }
+            
             setSelectedPlantId(null);
           }
         }
       ]
     );
   };
-
-  const renderCategoryItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.categoryItem}
-      onPress={() => navigation.navigate('PlantList', { category: item.name })}
-    >
-      <SvgImage source={item.image} style={styles.categoryImage} />
-      <View style={styles.categoryTextContainer}>
-        <Text style={styles.categoryName}>{item.name}</Text>
-        <Text style={styles.categoryCount}>
-          {plantCounts[item.name] || 0} plants
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   const renderPlantItem = ({ item }) => (
     <TouchableOpacity 
@@ -271,16 +124,6 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <Text style={styles.title}>PlantPal</Text>
         </View>
-
-        <Text style={styles.sectionTitle}>Browse Categories</Text>
-        <FlatList
-          horizontal
-          data={activeCategories}
-          renderItem={renderCategoryItem}
-          keyExtractor={item => item.id}
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryList}
-        />
 
         <View style={styles.myPlantsHeader}>
           <Text style={styles.sectionTitle}>My Plants</Text>
@@ -335,35 +178,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#333',
-  },
-  categoryList: {
-    marginBottom: 20,
-  },
-  categoryItem: {
-    marginRight: 15,
-    alignItems: 'center',
-    width: 100,
-  },
-  categoryImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
-    resizeMode: 'contain',
-  },
-  categoryTextContainer: {
-    alignItems: 'center',
-  },
-  categoryName: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  categoryCount: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
   },
   myPlantsHeader: {
     flexDirection: 'row',

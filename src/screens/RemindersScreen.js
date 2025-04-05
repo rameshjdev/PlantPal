@@ -273,16 +273,17 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     alignItems: 'flex-start', // Align items to the left
+    marginBottom: 10, // Add margin bottom to separate from content
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-    marginTop: Platform.OS === 'ios' ? 40 : 20, // Add margin top to push title down
+    marginTop: Platform.OS === 'ios' ? 10 : 0, // Reduce margin top
   },
   filterContainer: {
-    marginTop: 15,
-    marginBottom: 5,
+    marginVertical: 10,
+    paddingHorizontal: 5,
   },
   filterContent: {
     paddingHorizontal: 15,

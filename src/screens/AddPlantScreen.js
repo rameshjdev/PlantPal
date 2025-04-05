@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDispatch, useSelector } from 'react-redux';
-import { addPlant, searchPlants, fetchPlants } from '../store/plantsSlice';
+import { addPlant, searchPlants, fetchPlants, toggleFavorite } from '../store/plantsSlice';
 import * as ImagePicker from 'expo-image-picker';
 // Temporarily comment out these imports until we have proper development builds
 // import { BarCodeScanner } from 'expo-barcode-scanner';
@@ -16,6 +16,8 @@ const AddPlantScreen = () => {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [apiRecordCount, setApiRecordCount] = useState({ search: 0, all: 0 });
   
   // Camera and scan state
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
@@ -67,31 +69,208 @@ const AddPlantScreen = () => {
   useEffect(() => {
     if (allPlants.length === 0) {
       dispatch(fetchPlants());
+    } else {
+      setApiRecordCount(prev => ({ ...prev, all: allPlants.length }));
     }
   }, [dispatch, allPlants.length]);
 
-  // Get popular plants from all plants
-  const getPopularPlants = () => {
-    if (allPlants.length === 0) return [];
-    
-    // Sort plants by popularity or other criteria
-    // Here we're using a simple algorithm that considers plants with
-    // "Easy" or "Very Easy" care level as popular
-    const popularPlants = [...allPlants]
-      .filter(plant => 
-        plant.careLevel === 'Easy' || 
-        plant.careLevel === 'Very Easy'
-      )
-      .sort((a, b) => {
-        // Prioritize plants with more data/details
-        const aDataLength = a.data ? a.data.length : 0;
-        const bDataLength = b.data ? b.data.length : 0;
-        return bDataLength - aDataLength;
-      })
-      .slice(0, 8); // Limit to 8 popular plants
-    
-    return popularPlants;
+  // Update search results count when results change
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      setApiRecordCount(prev => ({ ...prev, search: searchResults.length }));
+    }
+  }, [searchResults]);
+
+  // Dynamically generate plant categories from API data
+  const generatePlantCategories = () => {
+    // Default categories if no plants are available
+    if (allPlants.length === 0) {
+      return [
+        { id: '1', name: 'Indoor Plants', image: require('../../assets/indoor.png') },
+        { id: '2', name: 'Succulents', image: require('../../assets/succulent.png') },
+      ];
+    }
+
+    // Extract unique care levels, water frequencies, and light requirements
+    const careLevels = [...new Set(allPlants.map(plant => plant.careLevel).filter(Boolean))];
+    const waterTypes = [...new Set(allPlants.map(plant => plant.water).filter(Boolean))];
+    const lightTypes = [...new Set(allPlants.map(plant => plant.light).filter(Boolean))];
+
+    // Build categories from plant data
+    const categories = [];
+
+    // Add care level categories
+    careLevels.forEach((level, index) => {
+      categories.push({
+        id: `care-${index}`,
+        name: `${level} Care`,
+        image: getImageForCategory('care', level),
+        filterType: 'careLevel',
+        filterValue: level
+      });
+    });
+
+    // Add light requirement categories
+    lightTypes.forEach((light, index) => {
+      categories.push({
+        id: `light-${index}`,
+        name: light,
+        image: getImageForCategory('light', light),
+        filterType: 'light',
+        filterValue: light
+      });
+    });
+
+    // Add water requirement categories
+    waterTypes.forEach((water, index) => {
+      categories.push({
+        id: `water-${index}`,
+        name: water,
+        image: getImageForCategory('water', water),
+        filterType: 'water',
+        filterValue: water
+      });
+    });
+
+    return categories;
   };
+
+  // Helper function to get an image for a category
+  const getImageForCategory = (type, value) => {
+    // Map category types to appropriate images
+    if (type === 'care') {
+      if (value.includes('Easy')) {
+        return require('../../assets/peace_lily.png');
+      } else if (value.includes('Difficult')) {
+        return require('../../assets/fiddle_leaf.png');
+      } else {
+        return require('../../assets/monstera.png');
+      }
+    } else if (type === 'light') {
+      if (value.includes('sun') || value.includes('bright')) {
+        return require('../../assets/succulent.png');
+      } else if (value.includes('shade') || value.includes('low')) {
+        return require('../../assets/snake_plant.png');
+      } else {
+        return require('../../assets/indoor.png');
+      }
+    } else if (type === 'water') {
+      if (value.includes('Weekly') || value.includes('moist')) {
+        return require('../../assets/monstera.png');
+      } else if (value.includes('2-3') || value.includes('dry')) {
+        return require('../../assets/succulent.png');
+      } else {
+        return require('../../assets/herbs.png');
+      }
+    }
+    
+    // Default image
+    return require('../../assets/indoor.png');
+  };
+
+  // Create the categories from the API data
+  const plantCategories = generatePlantCategories();
+
+  // Show the browse categories modal
+  const [categoriesModalVisible, setCategoriesModalVisible] = useState(false);
+
+  // Handle browse categories button press
+  const handleBrowseCategories = () => {
+    setCategoriesModalVisible(true);
+  };
+
+  // Handle category selection
+  const handleCategorySelect = (category) => {
+    setCategoriesModalVisible(false);
+    setSelectedCategory(category);
+    
+    // Don't show the loading state when filtering by category
+    // We already have all plants loaded, just need to filter them
+    if (allPlants.length > 0) {
+      setIsSearching(true);
+    } else {
+      // If plants aren't loaded yet, fetch them
+      dispatch(fetchPlants());
+      setIsSearching(true);
+    }
+  };
+
+  // Filter plants by selected category
+  const getFilteredPlants = () => {
+    // If no plants are loaded yet, return empty array
+    if (allPlants.length === 0 && !searchResults.length) {
+      return [];
+    }
+    
+    // If no category is selected, return all plants or search results
+    if (!selectedCategory) {
+      return isSearching && searchQuery.trim() !== '' ? searchResults : allPlants;
+    }
+    
+    // Choose which set of plants to filter based on whether a search was performed
+    const plantsToFilter = isSearching && searchQuery.trim() !== '' ? searchResults : allPlants;
+    
+    // Filter plants by the selected category's filter type and value
+    return plantsToFilter.filter(plant => {
+      const plantValue = plant[selectedCategory.filterType];
+      // Handle case where the plant might not have the property we're filtering by
+      if (!plantValue) return false;
+      
+      return plantValue === selectedCategory.filterValue;
+    });
+  };
+
+  // Reset category filter
+  const resetCategoryFilter = () => {
+    setSelectedCategory(null);
+  };
+
+  // Render the categories modal
+  const renderCategoriesModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={categoriesModalVisible}
+      onRequestClose={() => setCategoriesModalVisible(false)}
+    >
+      <View style={styles.categoriesModalContainer}>
+        <View style={styles.categoriesModalContent}>
+          <View style={styles.categoriesModalHeader}>
+            <Text style={styles.categoriesModalTitle}>Browse Categories</Text>
+            <TouchableOpacity onPress={() => setCategoriesModalVisible(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          
+          <FlatList
+            data={plantCategories}
+            numColumns={2}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.categoryItem}
+                onPress={() => handleCategorySelect(item)}
+              >
+                <SvgImage source={item.image} style={styles.categoryImage} />
+                <Text style={styles.categoryName}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.categoriesList}
+          />
+          
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => {
+              setCategoriesModalVisible(false);
+              resetCategoryFilter();
+            }}
+          >
+            <Text style={styles.viewAllButtonText}>View All Plants</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   // Debounce search to avoid too many API calls
   useEffect(() => {
@@ -110,6 +289,7 @@ const AddPlantScreen = () => {
     
     if (query.trim() === '') {
       setIsSearching(false);
+      resetCategoryFilter();
     }
   };
 
@@ -128,8 +308,11 @@ const AddPlantScreen = () => {
         fertilizer: 'As needed',
         repotting: 'Every 1-2 years',
       },
-      isFavorite: false
+      isFavorite: true // Set to true when adding to collection
     }));
+
+    // Toggle plant as favorite in the general plant list
+    dispatch(toggleFavorite(plant.id));
 
     // Show success message
     Alert.alert(
@@ -177,22 +360,35 @@ const AddPlantScreen = () => {
       <View style={styles.resultInfo}>
         <Text style={styles.resultName}>{item.name}</Text>
         <Text style={styles.resultSpecies}>{item.species}</Text>
+        {item.careLevel && (
+          <View style={styles.resultCareLevel}>
+            <Text style={styles.resultCareLevelText}>{item.careLevel}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
 
   // Render loading indicator when searching
   const renderSearchContent = () => {
-    if (searchStatus === 'loading') {
+    const filteredPlants = getFilteredPlants();
+    
+    // Only show loading when we're actually loading from the API,
+    // not when we're just filtering locally
+    if ((searchStatus === 'loading' && searchQuery.trim() !== '') || 
+        (loadingPlants && allPlants.length === 0 && !selectedCategory)) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Searching plants...</Text>
+          <Text style={styles.loadingText}>
+            {searchQuery.trim() !== '' ? 'Searching plants...' : 'Loading plants...'}
+          </Text>
         </View>
       );
     }
 
-    if (searchStatus === 'failed') {
+    // Show error only for search API failures, not for filtering
+    if (searchStatus === 'failed' && searchQuery.trim() !== '') {
       return (
         <View style={styles.errorContainer}>
           <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#E53935" />
@@ -203,57 +399,52 @@ const AddPlantScreen = () => {
       );
     }
 
+    // Show the filtered results
     return (
-      <FlatList
-        data={searchResults}
-        renderItem={renderSearchResult}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.searchResults}
-        ListEmptyComponent={
-          <Text style={styles.noResultsText}>No plants found. Try a different search term.</Text>
-        }
-      />
-    );
-  };
-
-  // Render dynamic popular plants section
-  const renderPopularPlants = () => {
-    const popularPlants = getPopularPlants();
-    
-    if (loadingPlants) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#2E7D32" />
-          <Text style={styles.loadingText}>Loading popular plants...</Text>
-        </View>
-      );
-    }
-    
-    if (popularPlants.length === 0) {
-      return (
-        <View style={styles.emptyPopularContainer}>
-          <Text style={styles.emptyPopularText}>No popular plants available.</Text>
-        </View>
-      );
-    }
-    
-    return (
-      <View style={styles.popularPlantsContainer}>
-        {popularPlants.map(plant => (
-          <TouchableOpacity 
-            key={plant.id} 
-            style={styles.popularPlantItem}
-            onPress={() => handleSelectPlant(plant)}
-          >
-            <SvgImage source={plant.image} style={styles.popularPlantImage} />
-            <Text style={styles.popularPlantName}>{plant.name}</Text>
-            {plant.careLevel && (
-              <View style={styles.careLevelTag}>
-                <Text style={styles.careLevelText}>{plant.careLevel}</Text>
-              </View>
+      <View style={styles.resultsContainer}>
+        {selectedCategory && (
+          <View style={styles.categoryFilterContainer}>
+            <Text style={styles.categoryFilterLabel}>
+              Filtered by: {selectedCategory.name}
+            </Text>
+            <TouchableOpacity 
+              style={styles.categoryFilterClear}
+              onPress={resetCategoryFilter}
+            >
+              <MaterialCommunityIcons name="close" size={18} color="#2E7D32" />
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        <Text style={styles.resultCountText}>
+          {filteredPlants.length} plant{filteredPlants.length !== 1 ? 's' : ''} found
+        </Text>
+        
+        {filteredPlants.length > 0 ? (
+          <FlatList
+            data={filteredPlants}
+            renderItem={renderSearchResult}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.searchResults}
+          />
+        ) : (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>
+              {selectedCategory 
+                ? `No plants found in the "${selectedCategory.name}" category.` 
+                : "No plants found. Try a different search term or category."
+              }
+            </Text>
+            {selectedCategory && (
+              <TouchableOpacity 
+                style={styles.clearFilterButton}
+                onPress={resetCategoryFilter}
+              >
+                <Text style={styles.clearFilterButtonText}>Clear Filter</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -420,80 +611,6 @@ const AddPlantScreen = () => {
     });
   };
 
-  // Camera view renderer - temporarily disabled
-  // const renderCameraView = () => {
-  //   if (!cameraVisible) return null;
-  //   
-  //   return (
-  //     <Modal
-  //       animationType="slide"
-  //       transparent={false}
-  //       visible={cameraVisible}
-  //       onRequestClose={() => setCameraVisible(false)}
-  //     >
-  //       <View style={styles.cameraContainer}>
-  //         <Camera
-  //           ref={cameraRef}
-  //           style={styles.camera}
-  //           type={Camera.Constants.Type.back}
-  //           ratio="16:9"
-  //         >
-  //           <View style={styles.cameraControlsContainer}>
-  //             <TouchableOpacity 
-  //               style={styles.cameraCloseButton}
-  //               onPress={() => setCameraVisible(false)}
-  //             >
-  //               <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-  //             </TouchableOpacity>
-  //             
-  //             <TouchableOpacity 
-  //               style={styles.cameraCaptureButton}
-  //               onPress={handleCameraCapture}
-  //             >
-  //               <View style={styles.cameraCaptureCircle} />
-  //             </TouchableOpacity>
-  //           </View>
-  //         </Camera>
-  //       </View>
-  //     </Modal>
-  //   );
-  // };
-  
-  // Barcode scanner view renderer - temporarily disabled
-  // const renderBarcodeScannerView = () => {
-  //   if (!barcodeScannerVisible) return null;
-  //   
-  //   return (
-  //     <Modal
-  //       animationType="slide"
-  //       transparent={false}
-  //       visible={barcodeScannerVisible}
-  //       onRequestClose={() => setBarcodeScannerVisible(false)}
-  //     >
-  //       <View style={styles.barcodeContainer}>
-  //         <BarCodeScanner
-  //           onBarCodeScanned={scannedData ? undefined : handleBarCodeScanned}
-  //           style={styles.barcodeScannerView}
-  //         />
-  //         
-  //         <View style={styles.barcodeOverlay}>
-  //           <View style={styles.barcodeFrame} />
-  //           <Text style={styles.barcodeInstructions}>
-  //             Position the barcode within the frame
-  //           </Text>
-  //         </View>
-  //         
-  //         <TouchableOpacity 
-  //           style={styles.barcodeCloseButton}
-  //           onPress={() => setBarcodeScannerVisible(false)}
-  //         >
-  //           <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-  //         </TouchableOpacity>
-  //       </View>
-  //     </Modal>
-  //   );
-  // };
-  
   // Render the manual entry form
   const renderManualEntryView = () => (
     <Modal
@@ -621,7 +738,11 @@ const AddPlantScreen = () => {
           <MaterialCommunityIcons name="chevron-left" size={24} color="#2E7D32" />
         </TouchableOpacity>
         <Text style={styles.title}>Add a Plant</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.apiCountContainer}>
+          <Text style={styles.apiCountText}>
+            API: {apiRecordCount.all}/{apiRecordCount.search}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -634,7 +755,7 @@ const AddPlantScreen = () => {
         />
       </View>
 
-      {isSearching && searchQuery.trim() !== '' ? (
+      {isSearching || selectedCategory ? (
         renderSearchContent()
       ) : (
         <ScrollView style={styles.addOptionsContainer}>
@@ -652,7 +773,7 @@ const AddPlantScreen = () => {
           
           <TouchableOpacity 
             style={styles.addOption}
-            onPress={() => navigation.navigate('PlantList', { category: 'All Plants' })}
+            onPress={handleBrowseCategories}
           >
             <View style={styles.addOptionIcon}>
               <MaterialCommunityIcons name="magnify" size={24} color="#2E7D32" />
@@ -682,80 +803,10 @@ const AddPlantScreen = () => {
               <Text style={styles.addOptionDescription}>Add plant details manually</Text>
             </View>
           </TouchableOpacity>
-          
-          <View style={styles.popularSection}>
-            <Text style={styles.sectionTitle}>Popular Plants:</Text>
-            {renderPopularPlants()}
-          </View>
         </ScrollView>
       )}
       
-      {/* Render modals */}
-      {/* Camera Modal - temporarily disabled */}
-      {/* {cameraVisible && (
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={cameraVisible}
-          onRequestClose={() => setCameraVisible(false)}
-        >
-          <View style={styles.cameraContainer}>
-            <Camera
-              ref={cameraRef}
-              style={styles.camera}
-              type={Camera.Constants.Type.back}
-              ratio="16:9"
-            >
-              <View style={styles.cameraControlsContainer}>
-                <TouchableOpacity 
-                  style={styles.cameraCloseButton}
-                  onPress={() => setCameraVisible(false)}
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.cameraCaptureButton}
-                  onPress={handleCameraCapture}
-                >
-                  <View style={styles.cameraCaptureCircle} />
-                </TouchableOpacity>
-              </View>
-            </Camera>
-          </View>
-        </Modal>
-      )} */}
-
-      {/* Barcode Scanner Modal - temporarily disabled */}
-      {/* {barcodeScannerVisible && (
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={barcodeScannerVisible}
-          onRequestClose={() => setBarcodeScannerVisible(false)}
-        >
-          <View style={styles.barcodeContainer}>
-            <BarCodeScanner
-              onBarCodeScanned={handleBarCodeScanned}
-              style={styles.barcodeScannerView}
-            />
-            
-            <View style={styles.barcodeOverlay}>
-              <View style={styles.barcodeFrame} />
-              <Text style={styles.barcodeInstructions}>
-                Position the barcode within the frame
-              </Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.barcodeCloseButton}
-              onPress={() => setBarcodeScannerVisible(false)}
-            >
-              <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </Modal>
-      )} */}
+      {renderCategoriesModal()}
       {renderManualEntryView()}
     </SafeAreaView>
   );
@@ -797,8 +848,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D32',
   },
-  placeholder: {
+  apiCountContainer: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F8E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  apiCountText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#2E7D32',
   },
   searchContainer: {
     padding: 16,
@@ -854,11 +915,33 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#666',
   },
+  resultCareLevel: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(46, 125, 50, 0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  resultCareLevelText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  noResultsContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    margin: 16,
+  },
   noResultsText: {
     textAlign: 'center',
     fontSize: 16,
     color: '#666',
-    marginTop: 20,
+    marginBottom: 16,
   },
   addOptionsContainer: {
     flex: 1,
@@ -912,42 +995,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  popularPlantsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  popularPlantItem: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-      },
-      android: {
-        elevation: 2,
-      }
-    }),
-  },
-  popularPlantImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 8,
-    resizeMode: 'contain',
-  },
-  popularPlantName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -972,99 +1019,31 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  popularSection: {
-    marginBottom: 30,
-  },
-  emptyPopularContainer: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  emptyPopularText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  careLevelTag: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(46, 125, 50, 0.8)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  careLevelText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'black',
-  },
-  camera: {
+  resultsContainer: {
     flex: 1,
   },
-  cameraControls: {
-    flex: 1,
-    backgroundColor: 'transparent',
+  categoryFilterContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingBottom: 30,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    justifyContent: 'space-between',
+    padding: 10,
     backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  scannerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  categoryFilterLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  scannerTargetContainer: {
-    width: 250,
-    height: 250,
-    justifyContent: 'center',
-    alignItems: 'center',
+  categoryFilterClear: {
+    padding: 5,
   },
-  scannerTarget: {
-    width: 200,
-    height: 200,
-    borderWidth: 2,
-    borderColor: 'white',
-    borderRadius: 10,
-  },
-  scannerText: {
-    color: 'white',
-    fontSize: 16,
-    marginTop: 20,
-    textAlign: 'center',
-    paddingHorizontal: 50,
+  resultCountText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    margin: 10,
   },
   manualEntryModalContainer: {
     flex: 1,
@@ -1187,6 +1166,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     fontWeight: '600',
+  },
+  categoriesModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoriesModalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  categoriesModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  categoriesModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+  },
+  categoriesList: {
+    alignItems: 'center',
+  },
+  categoryItem: {
+    width: '45%',
+    margin: 10,
+    alignItems: 'center',
+  },
+  categoryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+    resizeMode: 'contain',
+  },
+  categoryName: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  viewAllButton: {
+    marginTop: 20,
+    backgroundColor: '#2E7D32',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewAllButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  clearFilterButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  clearFilterButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
 
