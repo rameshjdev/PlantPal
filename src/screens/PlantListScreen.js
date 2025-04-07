@@ -191,17 +191,65 @@ const PlantListScreen = ({ route }) => {
       const categoryMap = {
         'Indoor Plants': plant => {
           // Consider a plant indoor if it doesn't explicitly require full sun
-          const lightReq = plant.light ? plant.light.toLowerCase() : '';
-          return !lightReq.includes('full sun only') || lightReq.includes('partial');
+          if (!plant) return false;
+          
+          // Check sunlight array first (Perenual API format)
+          if (plant.sunlight && Array.isArray(plant.sunlight)) {
+            const sunlightStr = plant.sunlight.join(' ').toLowerCase();
+            return !sunlightStr.includes('full sun only') || sunlightStr.includes('partial');
+          }
+          
+          // Fallback to light property with proper type checking
+          if (plant.light && typeof plant.light === 'string') {
+            const lightStr = plant.light.toLowerCase();
+            return !lightStr.includes('full sun only') || lightStr.includes('partial');
+          }
+          
+          // Check plant name for common indoor plants
+          const commonIndoorPlants = [
+            'pothos', 'snake plant', 'zz plant', 'peace lily', 'philodendron',
+            'spider plant', 'dracaena', 'monstera', 'fern', 'bamboo'
+          ];
+          
+          if (plant.name) {
+            const nameLower = plant.name.toLowerCase();
+            if (commonIndoorPlants.some(indoorPlant => nameLower.includes(indoorPlant))) {
+              return true;
+            }
+          }
+          
+          // Default to indoor if light requirement is unknown and no other indicators
+          return true;
         },
         'Succulents': plant => {
-          // Succulents typically need less water
-          const water = plant.water ? plant.water.toLowerCase() : '';
-          return water.includes('2-3 weeks') || 
-                 (plant.data && plant.data.some(item => 
-                   item.key && item.key.toLowerCase().includes('succulent') || 
-                   (item.key === 'Plant type' && item.value && item.value.toLowerCase().includes('succulent'))
-                 ));
+          if (!plant) return false;
+          
+          // Check watering needs
+          const hasLongWateringInterval = plant.water && 
+            plant.water.toLowerCase().includes('2-3 weeks');
+          
+          // Check plant data if available
+          let isSucculentType = false;
+          if (plant.data && Array.isArray(plant.data)) {
+            isSucculentType = plant.data.some(item => 
+              item && (
+                (item.key && item.key.toLowerCase().includes('succulent')) || 
+                (item.key === 'Plant type' && item.value && 
+                 item.value.toLowerCase().includes('succulent'))
+              )
+            );
+          }
+          
+          // Check plant name for succulent indicators
+          const hasSucculentName = plant.name && 
+            plant.name.toLowerCase().includes('succulent');
+          
+          // Check watering frequency from Perenual API
+          const hasMinimumWatering = plant.watering && 
+            plant.watering.toLowerCase().includes('minimum');
+          
+          return hasLongWateringInterval || isSucculentType || 
+                 hasSucculentName || hasMinimumWatering;
         },
         'Flowering Plants': plant => {
           // Check if plant data indicates it's flowering
@@ -248,7 +296,7 @@ const PlantListScreen = ({ route }) => {
           const lowLightPlants = ['ZZ Plant', 'Snake Plant', 'Pothos', 'Peace Lily', 
                                  'Spider Plant', 'Philodendron', 'Cast Iron Plant', 
                                  'Chinese Evergreen', 'Dracaena', 'Aglaonema'];
-          return plant.light && plant.light.toLowerCase().includes('low') || 
+          return (plant.light && typeof plant.light === 'string' && plant.light.toLowerCase().includes('low')) || 
                  lowLightPlants.some(name => plant.name.toLowerCase().includes(name.toLowerCase()));
         },
         'Tropical Plants': plant => {
@@ -351,7 +399,7 @@ const PlantListScreen = ({ route }) => {
             if (!lightMatch) return false;
           } 
           // Fallback to old light property
-          else if (plant.light) {
+          else if (plant.light && typeof plant.light === 'string') {
             const plantLight = plant.light.toLowerCase();
             const lightMatch = filterCriteria.light.some(light => {
               switch(light) {
@@ -1033,7 +1081,7 @@ const PlantListScreen = ({ route }) => {
          plant.name.toLowerCase().includes('orchid') ||
          plant.name.toLowerCase().includes('flower'));
          
-      const isIndoor = plant.light && !plant.light.toLowerCase().includes('full sun only');
+      const isIndoor = plant.light && typeof plant.light === 'string' && !plant.light.toLowerCase().includes('full sun only');
       
       const isTropical = ['monstera', 'palm', 'philodendron', 'calathea', 'anthurium'].some(
         name => plant.name && plant.name.toLowerCase().includes(name)

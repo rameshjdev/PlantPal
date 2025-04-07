@@ -188,10 +188,7 @@ const selectPlantCategories = createSelector(
         
         // Pet friendly plants
         if (plant.poisonous_to_pets === false || 
-            (plant.data && plant.data.some(item => 
-              item.key === 'Toxicity' && 
-              item.value && 
-              item.value.toLowerCase().includes('non-toxic')))) {
+            (plant.toxicity && plant.toxicity.toLowerCase().includes('non-toxic'))) {
           if (!categoryPlantIds['Pet Friendly'].has(plantId)) {
             categories['Pet Friendly'].push(plant);
             categoryPlantIds['Pet Friendly'].add(plantId);

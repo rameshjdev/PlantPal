@@ -14,7 +14,14 @@ export const fetchPlantsFromDB = async () => {
       .order('name', { ascending: true });
 
     if (error) throw error;
-    return { data, error: null };
+    
+    // Transform the light array into a string if it exists
+    const transformedData = data?.map(plant => ({
+      ...plant,
+      light: Array.isArray(plant.light) ? plant.light.join(', ') : plant.light || 'medium'
+    }));
+
+    return { data: transformedData, error: null };
   } catch (error) {
     console.error('Error fetching plants:', error);
     return { data: null, error };
@@ -80,7 +87,17 @@ export const getPlantByIdFromDB = async (plantId) => {
       .single();
 
     if (error) throw error;
-    return { data, error: null };
+
+    // Transform the light property for a single plant
+    if (data) {
+      const transformedData = {
+        ...data,
+        light: Array.isArray(data.light) ? data.light.join(', ') : data.light || 'medium'
+      };
+      return { data: transformedData, error: null };
+    }
+
+    return { data: null, error: null };
   } catch (error) {
     console.error('Error fetching plant:', error);
     return { data: null, error };
@@ -97,7 +114,14 @@ export const searchPlantsInDB = async (query) => {
       .order('name', { ascending: true });
 
     if (error) throw error;
-    return { data, error: null };
+
+    // Transform the light array into a string if it exists
+    const transformedData = data?.map(plant => ({
+      ...plant,
+      light: Array.isArray(plant.light) ? plant.light.join(', ') : plant.light || 'medium'
+    }));
+
+    return { data: transformedData, error: null };
   } catch (error) {
     console.error('Error searching plants:', error);
     return { data: null, error };

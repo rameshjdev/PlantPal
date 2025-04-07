@@ -58,14 +58,25 @@ const selectPlantsByCategory = createSelector(
           });
           break;
         case 'Succulents':
-          result = allPlants.filter(plant => 
-            (plant.water && plant.water.toLowerCase().includes('2-3 weeks')) ||
-            (plant.watering && plant.watering.toLowerCase().includes('minimum')) ||
-            (plant.data && plant.data.some(item => 
-              item.key && item.key.toLowerCase().includes('succulent') || 
-              (item.key === 'Plant type' && item.value && item.value.toLowerCase().includes('succulent'))
-            ))
-          );
+          result = allPlants.filter(plant => {
+            // Check water frequency
+            const hasLongWateringInterval = plant.water && plant.water.toLowerCase().includes('2-3 weeks');
+            const hasMinimumWatering = plant.watering && plant.watering.toLowerCase().includes('minimum');
+            
+            // Check plant data if available
+            let isSucculentType = false;
+            if (plant.data && Array.isArray(plant.data)) {
+              isSucculentType = plant.data.some(item => 
+                (item && item.key && item.key.toLowerCase().includes('succulent')) || 
+                (item && item.key === 'Plant type' && item.value && item.value.toLowerCase().includes('succulent'))
+              );
+            }
+            
+            // Check plant name as fallback
+            const hasSucculentName = plant.name && plant.name.toLowerCase().includes('succulent');
+            
+            return hasLongWateringInterval || hasMinimumWatering || isSucculentType || hasSucculentName;
+          });
           break;
         case 'Flowering Plants':
           result = allPlants.filter(plant => 
@@ -435,4 +446,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CategoryPlantsScreen; 
+export default CategoryPlantsScreen;
