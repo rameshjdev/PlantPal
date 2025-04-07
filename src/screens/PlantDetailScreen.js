@@ -149,6 +149,11 @@ const PlantDetailScreen = ({ route }) => {
   const getPlantImage = () => {
     if (!plant) return require('../../assets/monstera.png');
     
+    // First check for image_url from database
+    if (plant.image_url) {
+      return { uri: plant.image_url };
+    }
+    
     // Check for Perenual API format
     if (plant.default_image && plant.default_image.medium_url) {
       return { uri: plant.default_image.medium_url };

@@ -949,7 +949,12 @@ const PlantListScreen = ({ route }) => {
     const getPlantImage = () => {
       if (imageError) return null;
 
-      // First, try the Perenual API default_image format
+      // First check for database image_url
+      if (item.image_url) {
+        return { uri: item.image_url };
+      }
+      
+      // Then try the Perenual API default_image format
       if (item.default_image) {
         // Try to get the best quality image available
         if (item.default_image.medium_url) {
@@ -965,15 +970,19 @@ const PlantListScreen = ({ route }) => {
 
       // Next, try legacy formats
       if (item.image) {
+        if (typeof item.image === 'number') {
+          return item.image;
+        }
         if (typeof item.image === 'object' && item.image.uri) {
           return { uri: item.image.uri };
-        } else if (typeof item.image === 'string') {
+        }
+        if (typeof item.image === 'string') {
           return { uri: item.image };
         }
       }
 
-      // No valid image found
-      return null;
+      // Fallback to default image
+      return require('../../assets/monstera.png');
     };
 
     // Handle image loading errors
