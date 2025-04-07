@@ -147,95 +147,73 @@ export const scheduleNotification = async ({
 };
 
 // Schedule a plant care reminder
-export const schedulePlantCareReminder = async (reminder) => {
+export const schedulePlantCareReminder = async (
+  reminderId,
+  title,
+  body,
+  scheduledDate,
+  additionalData = {}
+) => {
   try {
-    const { plantName, type, time, day, frequency } = reminder;
+    // Validate inputs to prevent TypeError
+    if (!reminderId || !scheduledDate || isNaN(scheduledDate.getTime())) {
+      console.error('Invalid parameters for schedulePlantCareReminder:', {
+        reminderId,
+        title,
+        scheduledDate
+      });
+      throw new Error('Invalid parameters for scheduling reminder');
+    }
+
+    // Ensure scheduledDate is in the future
+    const now = new Date();
+    let notificationDate = new Date(scheduledDate);
     
-    // Parse time (format: HH:MM)
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    // Create appropriate trigger based on frequency
-    let trigger;
-    
-    if (frequency === 'daily') {
-      // Daily at specified time
-      trigger = {
-        hour: hours,
-        minute: minutes,
-        repeats: true,
-      };
-    } else if (frequency === 'weekly' && day) {
-      // Weekly on specified day at specified time
-      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      const weekday = weekdays.indexOf(day) + 1; // 1-7 where 1 is Monday
-      
-      trigger = {
-        weekday,
-        hour: hours,
-        minute: minutes,
-        repeats: true,
-      };
-    } else {
-      // For other frequencies, we'll use a date trigger and reschedule after completion
-      // Parse the nextDue date
-      let nextDueDate = new Date(reminder.nextDue);
-      nextDueDate.setHours(hours, minutes, 0, 0);
-      
-      // Ensure the date is in the future
-      const now = new Date();
-      if (nextDueDate <= now) {
-        // If the date is in the past, set it to tomorrow same time
-        nextDueDate = new Date();
-        nextDueDate.setDate(nextDueDate.getDate() + 1);
-        nextDueDate.setHours(hours, minutes, 0, 0);
-        console.log(`Adjusted past due date to future: ${nextDueDate}`);
-      }
-      
-      // Ensure there's at least a 60-second interval
-      const minTimeIntervalInSeconds = 60;
-      const diffInSeconds = Math.floor((nextDueDate - now) / 1000);
-      
-      if (diffInSeconds < minTimeIntervalInSeconds) {
-        nextDueDate = new Date(now.getTime() + minTimeIntervalInSeconds * 1000);
-        console.log(`Adjusted time interval to minimum 60 seconds: ${nextDueDate}`);
-      }
-      
-      trigger = nextDueDate;
+    if (notificationDate <= now) {
+      // If the date is in the past, set it to tomorrow same time
+      notificationDate = new Date();
+      notificationDate.setDate(notificationDate.getDate() + 1);
+      notificationDate.setHours(
+        scheduledDate.getHours(),
+        scheduledDate.getMinutes(),
+        0,
+        0
+      );
+      console.log(`Adjusted past due date to future: ${notificationDate}`);
     }
     
-    // Create title and body based on reminder type
-    let title, body;
+    // Ensure there's at least a 60-second interval
+    const minTimeIntervalInSeconds = 60;
+    const diffInSeconds = Math.floor((notificationDate - now) / 1000);
     
-    switch (type) {
-      case 'watering':
-        title = `Time to water your ${plantName}! 💧`;
-        body = `Your ${plantName} is thirsty and needs some water.`;
-        break;
-      case 'fertilizing':
-        title = `Time to fertilize your ${plantName}! 🌱`;
-        body = `Your ${plantName} needs nutrients to grow healthy.`;
-        break;
-      case 'rotation':
-        title = `Time to rotate your ${plantName}! 🔄`;
-        body = `Rotating your ${plantName} helps it grow evenly.`;
-        break;
-      case 'repotting':
-        title = `Time to repot your ${plantName}! 🪴`;
-        body = `Your ${plantName} might need a bigger home.`;
-        break;
-      default:
-        title = `Plant care reminder for ${plantName}`;
-        body = `It's time for some plant care!`;
+    if (diffInSeconds < minTimeIntervalInSeconds) {
+      notificationDate = new Date(now.getTime() + minTimeIntervalInSeconds * 1000);
+      console.log(`Adjusted time interval to minimum 60 seconds: ${notificationDate}`);
     }
+    
+    // Create a trigger with the date
+    const trigger = notificationDate;
+    
+    // Create the notification content
+    const content = {
+      title: title || 'Plant Care Reminder',
+      body: body || 'Time to check on your plant!',
+      data: {
+        type: 'plant-care',
+        reminderId,
+        ...additionalData
+      },
+      sound: true,
+      categoryIdentifier: 'plant-care',
+    };
     
     // Schedule the notification
-    const notificationId = await scheduleNotification({
-      title,
-      body,
-      data: { reminderId: reminder.id, plantId: reminder.plantId, type },
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content,
       trigger,
     });
     
+    console.log(`Scheduled plant care reminder (${notificationId}) for ${notificationDate}`);
     return notificationId;
   } catch (error) {
     console.error('Error scheduling plant care reminder:', error);

@@ -1,6 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import plantService from '../services/plantService';
 
+// Initial state with empty arrays
+const initialState = {
+  plants: [],
+  userPlants: [],
+  searchResults: [],
+  status: 'idle',
+  searchStatus: 'idle',
+  error: null,
+};
 
 // Async thunk for fetching plants from API
 export const fetchPlants = createAsyncThunk(
@@ -8,11 +17,11 @@ export const fetchPlants = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const data = await plantService.fetchPlants();
+      console.log(`Fetched ${data.length} plants from service in thunk`);
       return data;
     } catch (error) {
       console.error('Error fetching plants:', error);
-      // If API fails, return mock data as fallback
-      return rejectWithValue('Failed to fetch plants from API');
+      return rejectWithValue(error.message || 'Failed to fetch plants from API');
     }
   }
 );
@@ -26,7 +35,7 @@ export const searchPlants = createAsyncThunk(
       return data;
     } catch (error) {
       console.error('Error searching plants:', error);
-      return rejectWithValue('Failed to search plants');
+      return rejectWithValue(error.message || 'Failed to search plants');
     }
   }
 );
@@ -85,14 +94,30 @@ export const toggleFavorite = createAsyncThunk(
   async (plantId, { getState, rejectWithValue }) => {
     try {
       const { plants } = getState();
-      // Find if plant exists in user plants - if so, just toggle favorite
-      const existingUserPlant = plants.userPlants.find(p => p.id === plantId);
-      if (existingUserPlant) {
-        return { plantId, isFavorite: !existingUserPlant.isFavorite };
+      
+      // Ensure plantId is a string for consistent comparison
+      const plantIdStr = String(plantId);
+      
+      // Find if plant exists in user plants
+      const existingUserPlantIndex = plants.userPlants.findIndex(p => String(p.id) === plantIdStr);
+      
+      if (existingUserPlantIndex !== -1) {
+        // Plant is already in user plants, toggle favorite status
+        const existingUserPlant = plants.userPlants[existingUserPlantIndex];
+        const updatedFavoriteStatus = !existingUserPlant.isFavorite;
+        
+        // If toggling to unfavorite, we'll keep the plant in userPlants
+        // but update its favorite status
+        return { 
+          plantId: plantIdStr, 
+          isFavorite: updatedFavoriteStatus,
+          action: 'TOGGLE_EXISTING'
+        };
       }
       
-      // If not in user plants, find in all plants and add to user plants
-      const plantToFavorite = plants.plants.find(p => p.id === plantId);
+      // Plant is not in user plants, find it in all plants and add to user plants as favorite
+      const plantToFavorite = plants.plants.find(p => String(p.id) === plantIdStr);
+      
       if (plantToFavorite) {
         const currentDate = new Date().toISOString().split('T')[0];
         return {
@@ -100,10 +125,24 @@ export const toggleFavorite = createAsyncThunk(
           isFavorite: true,
           lastWatered: currentDate,
           nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          action: 'ADD_NEW'
         };
       }
       
-      // Return a default plant if not found instead of throwing an error
+      // If we don't find the plant in the main list, check the filtered list or search results
+      const fromFiltered = plants.searchResults.find(p => String(p.id) === plantIdStr);
+      if (fromFiltered) {
+        const currentDate = new Date().toISOString().split('T')[0];
+        return {
+          ...fromFiltered,
+          isFavorite: true,
+          lastWatered: currentDate,
+          nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          action: 'ADD_NEW'
+        };
+      }
+      
+      // Plant not found
       return rejectWithValue('Plant not found');
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -112,16 +151,64 @@ export const toggleFavorite = createAsyncThunk(
   }
 );
 
+// Async thunk for adding a plant to collection
+export const addToCollection = createAsyncThunk(
+  'plants/addToCollection',
+  async (plantId, { getState, rejectWithValue }) => {
+    try {
+      const { plants } = getState();
+      
+      // Ensure plantId is a string for consistent comparison
+      const plantIdStr = String(plantId);
+      
+      // Check if plant already exists in user plants
+      const existingPlant = plants.userPlants.find(p => String(p.id) === plantIdStr);
+      if (existingPlant) {
+        return { 
+          plantId: plantIdStr, 
+          action: 'ALREADY_EXISTS'
+        };
+      }
+      
+      // Find the plant in all plants list
+      const plantToAdd = plants.plants.find(p => String(p.id) === plantIdStr);
+      
+      if (plantToAdd) {
+        const currentDate = new Date().toISOString().split('T')[0];
+        return {
+          ...plantToAdd,
+          isFavorite: false, // Not a favorite by default
+          lastWatered: currentDate,
+          nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          action: 'ADD_NEW'
+        };
+      }
+      
+      // If we don't find the plant in the main list, check the search results
+      const fromSearch = plants.searchResults.find(p => String(p.id) === plantIdStr);
+      if (fromSearch) {
+        const currentDate = new Date().toISOString().split('T')[0];
+        return {
+          ...fromSearch,
+          isFavorite: false, // Not a favorite by default
+          lastWatered: currentDate,
+          nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          action: 'ADD_NEW'
+        };
+      }
+      
+      // Plant not found
+      return rejectWithValue('Plant not found');
+    } catch (error) {
+      console.error('Error adding to collection:', error);
+      return rejectWithValue(error.message || 'Failed to add to collection');
+    }
+  }
+);
+
 const plantsSlice = createSlice({
   name: 'plants',
-  initialState: {
-    plants: [],
-    userPlants: [],
-    searchResults: [],
-    status: 'idle',
-    searchStatus: 'idle',
-    error: null,
-  },
+  initialState,
   reducers: {
     updateWateringDate: (state, action) => {
       const { plantId, date } = action.payload;
@@ -129,9 +216,23 @@ const plantsSlice = createSlice({
       if (plant) {
         plant.lastWatered = date;
         // Calculate next watering date based on care requirements
-        // This is a simplified example
         const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 7); // Add 7 days for weekly watering
+        
+        // Use plant's watering frequency to determine next watering
+        // Default to 7 days if not specified
+        let daysToAdd = 7;
+        
+        if (plant.water) {
+          if (plant.water.includes('2-3 weeks') || plant.water.includes('Rarely')) {
+            daysToAdd = 14; // Two weeks
+          } else if (plant.water.includes('Weekly')) {
+            daysToAdd = 7; // One week
+          } else if (plant.water.includes('moist') || plant.water.includes('Daily')) {
+            daysToAdd = 3; // Every few days
+          }
+        }
+        
+        nextDate.setDate(nextDate.getDate() + daysToAdd);
         plant.nextWatering = nextDate.toISOString().split('T')[0];
       }
     },
@@ -144,19 +245,10 @@ const plantsSlice = createSlice({
       .addCase(fetchPlants.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.plants = action.payload;
-        // Initialize userPlants with the mock data for demo purposes
-        // In a real app, this would be separate user-specific data
-        if (state.userPlants.length === 0) {
-          state.userPlants = initialPlants;
-        }
       })
       .addCase(fetchPlants.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload || action.error.message;
-        // Fallback to mock data if API fails
-        if (state.plants.length === 0) {
-          state.plants = initialPlants;
-        }
       })
       .addCase(searchPlants.pending, (state) => {
         state.searchStatus = 'loading';
@@ -185,20 +277,44 @@ const plantsSlice = createSlice({
         state.error = action.payload || action.error.message;
       })
       .addCase(toggleFavorite.fulfilled, (state, action) => {
-        // If we got a full plant object, it means we need to add it to userPlants
-        if (action.payload.name) {
-          state.userPlants.push(action.payload);
-        } else {
-          // Otherwise just toggle the favorite status
-          const plant = state.userPlants.find(p => p.id === action.payload.plantId);
+        if (action.payload.action === 'ADD_NEW') {
+          // Add new plant to userPlants with logging
+          console.log('Adding new plant to favorites:', action.payload.name);
+          
+          // Create a clean copy without the action property
+          const newPlant = { ...action.payload };
+          delete newPlant.action;
+          
+          state.userPlants.push(newPlant);
+        } else if (action.payload.action === 'TOGGLE_EXISTING') {
+          // Update favorite status for existing plant
+          const plant = state.userPlants.find(p => String(p.id) === String(action.payload.plantId));
           if (plant) {
             plant.isFavorite = action.payload.isFavorite;
+            console.log(`${plant.name} favorite status set to: ${plant.isFavorite}`);
           }
         }
       })
       .addCase(toggleFavorite.rejected, (state, action) => {
         // Log the error but don't break the app
         console.warn('Failed to toggle favorite:', action.payload);
+        state.error = action.payload;
+      })
+      .addCase(addToCollection.fulfilled, (state, action) => {
+        if (action.payload.action === 'ADD_NEW') {
+          console.log('Adding plant to collection:', action.payload.name);
+          
+          // Create a clean copy without the action property
+          const newPlant = { ...action.payload };
+          delete newPlant.action;
+          
+          state.userPlants.push(newPlant);
+        } else if (action.payload.action === 'ALREADY_EXISTS') {
+          console.log('Plant already exists in collection');
+        }
+      })
+      .addCase(addToCollection.rejected, (state, action) => {
+        console.warn('Failed to add to collection:', action.payload);
         state.error = action.payload;
       });
   },

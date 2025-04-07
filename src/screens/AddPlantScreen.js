@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, ScrollView, Platform, Alert, ActivityIndicator, Modal, Image } from 'react-native';
-import SvgImage from '../utils/SvgImage';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addPlant, searchPlants, fetchPlants, toggleFavorite } from '../store/plantsSlice';
 import * as ImagePicker from 'expo-image-picker';
-// Temporarily comment out these imports until we have proper development builds
-// import { BarCodeScanner } from 'expo-barcode-scanner';
-// import { Camera } from 'expo-camera';
 
 const AddPlantScreen = () => {
   const navigation = useNavigation();
@@ -19,13 +16,8 @@ const AddPlantScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [apiRecordCount, setApiRecordCount] = useState({ search: 0, all: 0 });
   
-  // Camera and scan state
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
-  const [hasBarCodeScannerPermission, setHasBarCodeScannerPermission] = useState(null);
-  const [cameraVisible, setCameraVisible] = useState(false);
-  const [barcodeScannerVisible, setBarcodeScannerVisible] = useState(false);
+  // Keep these state variables for interface compatibility, but disable the functionality
   const [capturedImage, setCapturedImage] = useState(null);
-  const [scannedData, setScannedData] = useState(null);
   
   // Manual entry state
   const [manualEntryVisible, setManualEntryVisible] = useState(false);
@@ -37,9 +29,6 @@ const AddPlantScreen = () => {
     water: 'Weekly',
   });
 
-  // Camera reference
-  const cameraRef = useRef(null);
-  
   // Get search results and all plants from Redux store
   const { searchResults, searchStatus, error, allPlants, loadingPlants } = useSelector(state => ({
     searchResults: state.plants.searchResults,
@@ -49,20 +38,12 @@ const AddPlantScreen = () => {
     loadingPlants: state.plants.status === 'loading'
   }));
 
-  // Ask for camera permissions on mount - temporarily disabled
+  // Simplified permission check - only for image picker
   useEffect(() => {
-    // Disabled for now to prevent crashing
-    // (async () => {
-    //   const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-    //   setHasCameraPermission(cameraStatus === 'granted');
-    //   
-    //   const { status: barcodeStatus } = await BarCodeScanner.requestPermissionsAsync();
-    //   setHasBarCodeScannerPermission(barcodeStatus === 'granted');
-    // })();
-    
-    // Set default permissions to false
-    setHasCameraPermission(false);
-    setHasBarCodeScannerPermission(false);
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('Media library permission status:', status);
+    })();
   }, []);
 
   // Fetch plants on component mount if not already loaded
@@ -250,7 +231,7 @@ const AddPlantScreen = () => {
                 style={styles.categoryItem}
                 onPress={() => handleCategorySelect(item)}
               >
-                <SvgImage source={item.image} style={styles.categoryImage} />
+                <Image source={item.image} style={styles.categoryImage} resizeMode="contain" />
                 <Text style={styles.categoryName}>{item.name}</Text>
               </TouchableOpacity>
             )}
@@ -321,7 +302,7 @@ const AddPlantScreen = () => {
       [
         { 
           text: 'View My Plants', 
-          onPress: () => navigation.navigate('HomeTab') 
+          onPress: () => navigation.goBack() 
         },
         { 
           text: 'View Details', 
@@ -351,20 +332,23 @@ const AddPlantScreen = () => {
     return nextDate.toISOString().split('T')[0];
   };
 
+  // Render a search result item
   const renderSearchResult = ({ item }) => (
     <TouchableOpacity 
-      style={styles.searchResultItem}
+      style={styles.resultItem}
       onPress={() => handleSelectPlant(item)}
     >
-      <SvgImage source={item.image} style={styles.resultImage} />
+      <Image 
+        source={typeof item.image === 'number' ? item.image : { uri: item.image }} 
+        style={styles.resultImage} 
+        resizeMode="cover"
+      />
       <View style={styles.resultInfo}>
         <Text style={styles.resultName}>{item.name}</Text>
         <Text style={styles.resultSpecies}>{item.species}</Text>
-        {item.careLevel && (
-          <View style={styles.resultCareLevel}>
-            <Text style={styles.resultCareLevelText}>{item.careLevel}</Text>
-          </View>
-        )}
+        <View style={styles.resultCareLevel}>
+          <Text style={styles.careLevelText}>{item.careLevel}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -449,125 +433,6 @@ const AddPlantScreen = () => {
     );
   };
 
-  // Handle camera button press
-  const handleCameraPress = () => {
-    Alert.alert('Coming Soon', 'Camera functionality will be available in the next update.');
-    // Original functionality (commented out)
-    // if (hasCameraPermission === null) {
-    //   return Alert.alert('Requesting Permission', 'Please grant camera permissions to use this feature.');
-    // }
-    // if (hasCameraPermission === false) {
-    //   return Alert.alert('No Access to Camera', 'Please enable camera permissions in your device settings.');
-    // }
-    // setCameraVisible(true);
-  };
-
-  // Handle barcode scanner button press
-  const handleBarcodeScannerPress = () => {
-    Alert.alert('Coming Soon', 'Barcode scanner functionality will be available in the next update.');
-    // Original functionality (commented out)
-    // if (hasBarCodeScannerPermission === null) {
-    //   return Alert.alert('Requesting Permission', 'Please grant camera permissions to use this feature.');
-    // }
-    // if (hasBarCodeScannerPermission === false) {
-    //   return Alert.alert('No Access to Camera', 'Please enable camera permissions in your device settings.');
-    // }
-    // setBarcodeScannerVisible(true);
-  };
-
-  // Camera related functions
-  const handleTakePhoto = async () => {
-    // Check if we have permission
-    if (hasCameraPermission !== true) {
-      Alert.alert(
-        'Camera Permission',
-        'We need camera access to take photos of plants',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Settings', onPress: () => { /* ideally open settings */ } }
-        ]
-      );
-      return;
-    }
-    
-    setCameraVisible(true);
-  };
-  
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync();
-        setCapturedImage(photo.uri);
-        setCameraVisible(false);
-        
-        // Simulate plant identification
-        setTimeout(() => {
-          Alert.alert(
-            'Plant Identified',
-            'We identified this as a Monstera Deliciosa. Would you like to add it to your collection?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Add Plant', 
-                onPress: () => {
-                  const identifiedPlant = allPlants.find(p => p.name.includes('Monstera')) || allPlants[0];
-                  if (identifiedPlant) {
-                    handleSelectPlant(identifiedPlant);
-                  }
-                }
-              }
-            ]
-          );
-        }, 1500);
-      } catch (error) {
-        console.error('Failed to take picture:', error);
-        Alert.alert('Error', 'Failed to take picture. Please try again.');
-      }
-    }
-  };
-  
-  // Barcode scanner related functions
-  const handleScanBarcode = async () => {
-    if (hasBarCodeScannerPermission !== true) {
-      Alert.alert(
-        'Camera Permission',
-        'We need camera access to scan barcodes',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Settings', onPress: () => { /* ideally open settings */ } }
-        ]
-      );
-      return;
-    }
-    
-    setBarcodeScannerVisible(true);
-  };
-  
-  const handleBarCodeScanned = ({ type, data }) => {
-    setScannedData(data);
-    setBarcodeScannerVisible(false);
-    
-    // Simulate finding a plant by barcode
-    setTimeout(() => {
-      Alert.alert(
-        'Plant Found',
-        `We found a Snake Plant (Sansevieria) with barcode: ${data}. Would you like to add it to your collection?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Add Plant', 
-            onPress: () => {
-              const identifiedPlant = allPlants.find(p => p.name.includes('Snake')) || allPlants[1];
-              if (identifiedPlant) {
-                handleSelectPlant(identifiedPlant);
-              }
-            }
-          }
-        ]
-      );
-    }, 1000);
-  };
-  
   // Manual entry related functions
   const handleManualEntry = () => {
     setManualEntryVisible(true);
@@ -731,6 +596,49 @@ const AddPlantScreen = () => {
     </Modal>
   );
 
+  // Handle camera button press - navigate to the scan screen
+  const handleCameraPress = () => {
+    navigation.navigate('ScanPlant');
+  };
+  
+  // Use image picker
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant camera roll permissions to upload images.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+      
+      if (!result.canceled) {
+        setCapturedImage(result.assets[0].uri);
+        // Here you could handle the image, for example by identifying plants
+        Alert.alert(
+          'Image Selected',
+          'You can use this image to identify a plant or add it to your collection.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Identify Plant', 
+              onPress: () => navigation.navigate('ScanPlant') 
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -763,44 +671,41 @@ const AddPlantScreen = () => {
           
           <TouchableOpacity style={styles.addOption} onPress={handleCameraPress}>
             <View style={styles.addOptionIcon}>
-              <MaterialCommunityIcons name="camera" size={24} color="#2E7D32" />
+              <Ionicons name="scan-outline" size={24} color="#4CAF50" />
             </View>
             <View style={styles.addOptionInfo}>
-              <Text style={styles.addOptionTitle}>Take a Photo</Text>
+              <Text style={styles.addOptionTitle}>Scan & Identify</Text>
               <Text style={styles.addOptionDescription}>Use your camera to identify a plant</Text>
             </View>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.addOption}
-            onPress={handleBrowseCategories}
-          >
+          <TouchableOpacity style={styles.addOption} onPress={handleTakePhoto}>
             <View style={styles.addOptionIcon}>
-              <MaterialCommunityIcons name="magnify" size={24} color="#2E7D32" />
+              <Ionicons name="images-outline" size={24} color="#4CAF50" />
             </View>
             <View style={styles.addOptionInfo}>
-              <Text style={styles.addOptionTitle}>Browse Categories</Text>
-              <Text style={styles.addOptionDescription}>Find plants by category</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.addOption} onPress={handleBarcodeScannerPress}>
-            <View style={styles.addOptionIcon}>
-              <MaterialCommunityIcons name="barcode-scan" size={24} color="#2E7D32" />
-            </View>
-            <View style={styles.addOptionInfo}>
-              <Text style={styles.addOptionTitle}>Scan Barcode</Text>
-              <Text style={styles.addOptionDescription}>Scan a plant tag or QR code</Text>
+              <Text style={styles.addOptionTitle}>Photo Library</Text>
+              <Text style={styles.addOptionDescription}>Choose a plant image from your gallery</Text>
             </View>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.addOption} onPress={handleManualEntry}>
             <View style={styles.addOptionIcon}>
-              <MaterialCommunityIcons name="pencil" size={24} color="#2E7D32" />
+              <Ionicons name="create-outline" size={24} color="#4CAF50" />
             </View>
             <View style={styles.addOptionInfo}>
               <Text style={styles.addOptionTitle}>Manual Entry</Text>
               <Text style={styles.addOptionDescription}>Add plant details manually</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.addOption} onPress={handleBrowseCategories}>
+            <View style={styles.addOptionIcon}>
+              <Ionicons name="leaf-outline" size={24} color="#4CAF50" />
+            </View>
+            <View style={styles.addOptionInfo}>
+              <Text style={styles.addOptionTitle}>Browse Categories</Text>
+              <Text style={styles.addOptionDescription}>Find plants by categories</Text>
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -876,7 +781,7 @@ const styles = StyleSheet.create({
   searchResults: {
     padding: 16,
   },
-  searchResultItem: {
+  resultItem: {
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 12,
@@ -899,7 +804,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 8,
     marginRight: 12,
-    resizeMode: 'contain',
+    resizeMode: 'cover',
   },
   resultInfo: {
     flex: 1,
@@ -924,7 +829,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  resultCareLevelText: {
+  careLevelText: {
     color: 'white',
     fontSize: 10,
     fontWeight: 'bold',

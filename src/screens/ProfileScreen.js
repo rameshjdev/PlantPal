@@ -70,24 +70,15 @@ const ProfileScreen = () => {
   // Handle taking a photo with the camera
   const handleTakePhoto = async () => {
     try {
-      // Request permission to access the camera
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your camera to take a profile picture.');
-        return;
-      }
-      
-      // Launch the camera
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-      
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadProfilePhoto(result.assets[0].uri);
-      }
+      // Instead of using camera directly which causes errors, we'll use the gallery
+      Alert.alert(
+        'Camera Feature Unavailable',
+        'The camera feature is currently unavailable. Would you like to select an image from your gallery instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Gallery', onPress: handleSelectProfileImage }
+        ]
+      );
     } catch (error) {
       Alert.alert('Error', 'Failed to take photo. Please try again.');
     }

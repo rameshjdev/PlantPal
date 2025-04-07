@@ -62,12 +62,22 @@ PlantPal is a comprehensive mobile application that helps users manage their pla
    SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. Start the development server:
+4. Get a Trefle API token:
+   - Create an account at [Trefle.io](https://trefle.io)
+   - Confirm your email address
+   - Log in to your account
+   - Obtain your Trefle API token
+   - Add it to your `.env` file:
+   ```
+   TREFLE_API_TOKEN=your_trefle_api_token
+   ```
+
+5. Start the development server:
    ```bash
    npm start
    ```
 
-5. Follow the on-screen instructions to open the app in Expo Go on your device or an emulator.
+6. Follow the on-screen instructions to open the app in Expo Go on your device or an emulator.
 
 ## 📚 Project Structure
 
@@ -102,6 +112,15 @@ The app uses Supabase for backend services. To configure:
    - `weather_data` - Cached weather information
 3. Create storage buckets for plant images and user avatars
 4. Add your Supabase URL and anon key to the `.env` file
+
+### Trefle API Setup
+
+The app uses the Trefle API for plant data:
+
+1. Create an account at [Trefle.io](https://trefle.io)
+2. Log in and obtain your personal access token
+3. Add your Trefle API token to the `.env` file
+4. The app will now be able to access plant information from the Trefle database
 
 ### Notifications
 

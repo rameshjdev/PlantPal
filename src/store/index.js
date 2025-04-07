@@ -3,11 +3,13 @@ import { combineReducers } from 'redux';
 import plantsReducer from './plantsSlice';
 import weatherReducer from './weatherSlice';
 import remindersReducer from './remindersSlice';
+import authReducer from './authSlice';
 
 const rootReducer = combineReducers({
   plants: plantsReducer,
   weather: weatherReducer,
   reminders: remindersReducer,
+  auth: authReducer,
 });
 
 // Add a middleware to ensure consistent tab icon alignment
