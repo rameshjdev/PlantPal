@@ -2,10 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text, View, ActivityIndicator, Platform } from 'react-native';
+import { Text, View, ActivityIndicator, Platform, TouchableOpacity, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useSelector } from 'react-redux';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -14,11 +15,19 @@ import PlantDetailScreen from '../screens/PlantDetailScreen';
 import AddPlantScreen from '../screens/AddPlantScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SetReminderScreen from '../screens/SetReminderScreen';
-import RemindersScreen from '../screens/RemindersScreen';
-import WeatherScreen from '../screens/WeatherScreen';
+import SavedScreen from '../screens/SavedScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import SplashScreen from '../screens/SplashScreen';
+
+// Import new screens
+import CategoryPlantsScreen from '../screens/CategoryPlantsScreen';
+import AllCategoriesScreen from '../screens/AllCategoriesScreen';
+import AllPopularPlantsScreen from '../screens/AllPopularPlantsScreen';
+import ScanPlantScreen from '../screens/ScanPlantScreen';
+import SearchScreen from '../screens/SearchScreen';
+import AllAlertsScreen from '../screens/AllAlertsScreen';
+import ReminderDetailScreen from '../screens/ReminderDetailScreen';
 
 // Create navigators
 const Stack = createNativeStackNavigator();
@@ -60,6 +69,14 @@ const HomeStack = () => {
       <Stack.Screen name="PlantList" component={PlantListScreen} />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
       <Stack.Screen name="SetReminder" component={SetReminderScreen} />
+      <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
+      <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
+      <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
+      <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
+      <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
+      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
+      <Stack.Screen name="AddPlant" component={AddPlantScreen} />
     </Stack.Navigator>
   );
 };
@@ -68,28 +85,31 @@ const HomeStack = () => {
 const DiscoverStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="DiscoverHome" component={PlantListScreen} initialParams={{ category: 'All Plants' }} />
+      <Stack.Screen 
+        name="DiscoverHome" 
+        component={PlantListScreen} 
+        initialParams={{ 
+          category: 'All Plants',
+          usePopularPlants: true // This flag will tell the screen to use the popular plants API
+        }} 
+      />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
+      <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
+      <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
 };
 
-// Add plant stack navigator
-const AddPlantStack = () => {
+// Reminders stack navigator renamed to Saved Plants stack
+const SavedStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="AddPlant" component={AddPlantScreen} />
-      <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
-    </Stack.Navigator>
-  );
-};
-
-// Reminders stack navigator
-const RemindersStack = () => {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="RemindersHome" component={RemindersScreen} />
+      <Stack.Screen name="SavedHome" component={SavedScreen} />
       <Stack.Screen name="SetReminder" component={SetReminderScreen} />
+      <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
+      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
+      <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
     </Stack.Navigator>
   );
 };
@@ -99,16 +119,50 @@ const ProfileStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={ProfileScreen} />
+      <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
+      <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
     </Stack.Navigator>
   );
 };
 
-// Weather stack navigator
-const WeatherStack = () => {
+// Bottom tab bar icon component
+const TabBarIcon = ({ route, focused }) => {
+  let iconName;
+  let label;
+  
+  if (route.name === 'HomeTab') {
+    iconName = focused ? 'home' : 'home-outline';
+    label = 'Home';
+  } else if (route.name === 'ExploreTab') {
+    iconName = focused ? 'leaf' : 'leaf-outline';
+    label = 'Explore';
+  } else if (route.name === 'SavedTab') {
+    iconName = focused ? 'heart' : 'heart-outline';
+    label = 'Saved';
+  } else if (route.name === 'ProfileTab') {
+    iconName = focused ? 'person' : 'person-outline';
+    label = 'Profile';
+  }
+  
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="WeatherHome" component={WeatherScreen} />
-    </Stack.Navigator>
+    <View style={{
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      paddingTop: 8,
+      paddingBottom: 4
+    }}>
+      <Ionicons name={iconName} size={24} color={focused ? '#4CAF50' : '#757575'} />
+      <Text style={{ 
+        fontSize: 12, 
+        color: focused ? '#4CAF50' : '#757575',
+        marginTop: 4,
+        fontWeight: focused ? '500' : 'normal'
+      }}>
+        {label}
+      </Text>
+    </View>
   );
 };
 
@@ -117,70 +171,40 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
-          let iconName;
-          let label;
-          
-          if (route.name === 'HomeTab') {
-            iconName = 'home';
-            label = 'Home';
-          } else if (route.name === 'DiscoverTab') {
-            iconName = 'magnify';
-            label = 'Discover';
-          } else if (route.name === 'AddPlantTab') {
-            iconName = 'plus-circle';
-            label = 'Add';
-          } else if (route.name === 'RemindersTab') {
-            iconName = 'bell';
-            label = 'Reminders';
-          } else if (route.name === 'WeatherTab') {
-            iconName = 'weather-sunny';
-            label = 'Weather';
-          } else if (route.name === 'ProfileTab') {
-            iconName = 'account';
-            label = 'Profile';
-          }
-          
-          return <TabIcon iconName={iconName} label={label} focused={focused} />;
-        },
+        tabBarIcon: ({ focused }) => <TabBarIcon route={route} focused={focused} />,
+        tabBarActiveTintColor: '#4CAF50',
+        tabBarInactiveTintColor: '#757575',
         tabBarShowLabel: false,
         headerShown: false,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 85 : 70,
+          height: Platform.OS === 'ios' ? 88 : 70,
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#EEEEEE',
-          paddingHorizontal: 10, // Add horizontal padding
-          justifyContent: 'space-between', // Distribute items evenly
           ...Platform.select({
             ios: {
               shadowColor: '#000',
               shadowOffset: { width: 0, height: -2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
             },
             android: {
-              elevation: 8, // Increase elevation for better shadow on Android
+              elevation: 8,
             }
           })
         },
         tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
+          height: '100%',
+        }
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeStack} />
-      <Tab.Screen name="DiscoverTab" component={DiscoverStack} />
-      <Tab.Screen name="AddPlantTab" component={AddPlantStack} />
-      <Tab.Screen name="RemindersTab" component={RemindersStack} />
-      <Tab.Screen name="WeatherTab" component={WeatherStack} />
+      <Tab.Screen name="ExploreTab" component={DiscoverStack} />
+      <Tab.Screen name="SavedTab" component={SavedStack} />
       <Tab.Screen name="ProfileTab" component={ProfileStack} />
     </Tab.Navigator>
   );
 };
-
-// Auth screens are now directly in MainNavigator
 
 // Main app with tab navigator
 const MainApp = () => {
@@ -231,6 +255,13 @@ const MainNavigator = () => {
           <Stack.Screen name="SetReminder" component={SetReminderScreen} />
           <Stack.Screen name="PlantList" component={PlantListScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
+          <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
+          <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
+          <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
+          <Stack.Screen name="Search" component={SearchScreen} />
+          <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
+          <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
         </Stack.Group>
       )}
     </Stack.Navigator>
@@ -249,3 +280,25 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+
+const styles = StyleSheet.create({
+  tabBar: {
+    height: 60,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  addButton: {
+    backgroundColor: '#F1F8E9',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+});
