@@ -40,19 +40,30 @@ export const searchPlants = createAsyncThunk(
   }
 );
 
-// Async thunk for adding a plant
+// Async thunk for adding a plant to collection
 export const addPlant = createAsyncThunk(
   'plants/addPlant',
-  async (plant, { rejectWithValue }) => {
+  async (plant, { getState, rejectWithValue }) => {
     try {
-      // In a real app with full backend, you would save to API here
-      // For now, format the plant with proper structure
+      const { plants } = getState();
+      
+      // Check if plant already exists in user plants
+      const existingPlant = plants.userPlants.find(p => p.id === plant.id);
+      if (existingPlant) {
+        return { 
+          plantId: plant.id, 
+          action: 'ALREADY_EXISTS'
+        };
+      }
+      
+      // Format the plant with proper structure
+      const currentDate = new Date().toISOString().split('T')[0];
       const plantData = {
         ...plant,
         id: plant.id || Date.now().toString(),
-        lastWatered: new Date().toISOString().split('T')[0],
-        nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         isFavorite: false,
+        lastWatered: currentDate,
+        nextWatering: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       };
       
       return plantData;

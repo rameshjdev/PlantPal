@@ -47,6 +47,9 @@ const PlantListScreen = ({ route }) => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
+  const [selectedPlant, setSelectedPlant] = useState(null);
+  const [isQuickViewVisible, setIsQuickViewVisible] = useState(false);
+  
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -916,6 +919,97 @@ const PlantListScreen = ({ route }) => {
     </Modal>
   );
 
+  // Quick View Modal Component
+  const QuickViewModal = ({ plant, visible, onClose }) => {
+    if (!plant) return null;
+
+    const getPlantImage = () => {
+      if (plant.image_url) {
+        return { uri: plant.image_url };
+      }
+      if (plant.default_image) {
+        if (plant.default_image.medium_url) {
+          return { uri: plant.default_image.medium_url };
+        } else if (plant.default_image.regular_url) {
+          return { uri: plant.default_image.regular_url };
+        }
+      }
+      if (plant.image) {
+        if (typeof plant.image === 'number') return plant.image;
+        if (plant.image.uri) return { uri: plant.image.uri };
+        if (typeof plant.image === 'string') return { uri: plant.image };
+      }
+      return require('../../assets/monstera.png');
+    };
+
+    return (
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.quickViewContainer}>
+                <Image 
+                  source={getPlantImage()} 
+                  style={styles.quickViewImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.quickViewContent}>
+                  <Text style={styles.quickViewTitle}>{plant.name}</Text>
+                  {plant.species && (
+                    <Text style={styles.quickViewSpecies}>{plant.species}</Text>
+                  )}
+                  
+                  <View style={styles.quickViewDetails}>
+                    <View style={styles.quickViewDetailItem}>
+                      <MaterialCommunityIcons name="water-outline" size={20} color="#2196F3" />
+                      <Text style={styles.quickViewDetailText}>
+                        {plant.watering || 'Average'}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.quickViewDetailItem}>
+                      <MaterialCommunityIcons name="white-balance-sunny" size={20} color="#FF9800" />
+                      <Text style={styles.quickViewDetailText}>
+                        {plant.sunlight ? plant.sunlight[0] : 'Medium'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.quickViewDescription} numberOfLines={3}>
+                    {plant.description || 'A beautiful plant for your space.'}
+                  </Text>
+
+                  <View style={styles.quickViewActions}>
+                    <TouchableOpacity 
+                      style={styles.quickViewButton}
+                      onPress={() => {
+                        onClose();
+                        navigation.navigate('PlantDetail', { plantId: plant.id });
+                      }}
+                    >
+                      <Text style={styles.quickViewButtonText}>View Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+
+  // Update the plant item press handler
+  const handlePlantPress = (plant) => {
+    setSelectedPlant(plant);
+    setIsQuickViewVisible(true);
+  };
+
   // Create memo for rendering plant item to improve performance
   const MemoPlantItem = React.memo(({ item, index }) => {
     // Create animated values for staggered entrance
@@ -1139,7 +1233,7 @@ const PlantListScreen = ({ route }) => {
       >
         <TouchableOpacity 
           style={{ flex: 1 }}
-          onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
+          onPress={() => handlePlantPress(item)}
           activeOpacity={0.9}
         >
           <View style={styles.plantCard}>
@@ -1213,8 +1307,26 @@ const PlantListScreen = ({ route }) => {
     return prevProps.item.id === nextProps.item.id;
   });
 
-  const renderPlantItem = ({ item, index }) => {
-    return <MemoPlantItem item={item} index={index} />;
+  const renderPlantItem = ({ item }) => {
+    // Handle different image formats
+    const plantImage = typeof item.image === 'number' ? item.image : 
+                      item.image && item.image.uri ? { uri: item.image.uri } :
+                      typeof item.image === 'string' ? { uri: item.image } :
+                      item.image_url ? { uri: item.image_url } :
+                      require('../../assets/monstera.png');
+
+    return (
+      <TouchableOpacity 
+        style={styles.plantItem}
+        onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
+      >
+        <Image source={plantImage} style={styles.plantImage} />
+        <View style={styles.plantInfo}>
+          <Text style={styles.plantName}>{item.name}</Text>
+          <Text style={styles.plantSpecies}>{item.species || 'Houseplant'}</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   // Render footer with loading indicator when loading more plants
@@ -1354,6 +1466,12 @@ const PlantListScreen = ({ route }) => {
       />
 
       {renderFilterModal()}
+
+      <QuickViewModal
+        plant={selectedPlant}
+        visible={isQuickViewVisible}
+        onClose={() => setIsQuickViewVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -1439,13 +1557,14 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
     minHeight: '60%',
     maxHeight: '85%',
   },
@@ -1703,6 +1822,82 @@ const styles = StyleSheet.create({
     color: '#757575',
     marginBottom: 8,
     lineHeight: 16,
+  },
+  quickViewContainer: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  quickViewImage: {
+    width: '100%',
+    height: 200,
+  },
+  quickViewContent: {
+    padding: 16,
+  },
+  quickViewTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  quickViewSpecies: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  quickViewDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 12,
+  },
+  quickViewDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  quickViewDetailText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
+  },
+  quickViewDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  quickViewActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  quickViewButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+  },
+  quickViewButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

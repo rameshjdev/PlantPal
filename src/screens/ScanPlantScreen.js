@@ -111,7 +111,7 @@ const ScanPlantScreen = () => {
         'Success',
         `${identifiedPlant.name} has been added to your collection!`,
         [
-          { text: 'OK', onPress: () => navigation.navigate('HomeTab') }
+          { text: 'OK', onPress: () => navigation.navigate('Home') }
         ]
       );
     }

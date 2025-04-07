@@ -12,17 +12,15 @@ import { useSelector } from 'react-redux';
 import HomeScreen from '../screens/HomeScreen';
 import PlantListScreen from '../screens/PlantListScreen';
 import PlantDetailScreen from '../screens/PlantDetailScreen';
-import AddPlantScreen from '../screens/AddPlantScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SetReminderScreen from '../screens/SetReminderScreen';
 import SavedScreen from '../screens/SavedScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import SplashScreen from '../screens/SplashScreen';
+import CollectionView from '../screens/CollectionView';
 
 // Import new screens
-import CategoryPlantsScreen from '../screens/CategoryPlantsScreen';
-import AllCategoriesScreen from '../screens/AllCategoriesScreen';
 import AllPopularPlantsScreen from '../screens/AllPopularPlantsScreen';
 import ScanPlantScreen from '../screens/ScanPlantScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -66,17 +64,14 @@ const HomeStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="PlantList" component={PlantListScreen} />
+      <Stack.Screen name="CollectionView" component={CollectionView} />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
       <Stack.Screen name="SetReminder" component={SetReminderScreen} />
-      <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
-      <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
       <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
       <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
       <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
-      <Stack.Screen name="AddPlant" component={AddPlantScreen} />
     </Stack.Navigator>
   );
 };
@@ -95,7 +90,7 @@ const DiscoverStack = () => {
       />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
       <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
-      <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
+      <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
@@ -120,7 +115,6 @@ const ProfileStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={ProfileScreen} />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
-      <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
     </Stack.Navigator>
   );
 };
@@ -255,8 +249,6 @@ const MainNavigator = () => {
           <Stack.Screen name="SetReminder" component={SetReminderScreen} />
           <Stack.Screen name="PlantList" component={PlantListScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="CategoryPlants" component={CategoryPlantsScreen} />
-          <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
           <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
           <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
           <Stack.Screen name="Search" component={SearchScreen} />

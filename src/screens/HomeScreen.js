@@ -36,29 +36,20 @@ const selectPopularPlants = createSelector(
   state => state.plants.plants,
   state => state.plants.userPlants,
   (plants, userPlants) => {
-    // If we don't have any plants, return empty array
-    if (!plants || plants.length === 0) {
-      return [];
-    }
+    if (!plants || plants.length === 0) return [];
     
-    // If we have user plants, use their favorite status to influence popularity
     const userFavorites = userPlants.filter(p => p.isFavorite).map(p => p.id);
-
-    // Map to add popularity scores
     const plantsWithScores = plants.map(plant => {
-      // Base popularity score - use cycle if present or random if not
       let popularityScore = plant.cycle ? 
         (plant.cycle.includes('Perennial') ? 3 : 1) : 
         Math.floor(Math.random() * 5) + 1;
       
-      // Boost score for plants that user has favorited
       if (userFavorites.includes(plant.id.toString())) {
         popularityScore += 3;
       }
       
-      // Boost score for plants with specific characteristics
       if (plant.careLevel && plant.careLevel.toLowerCase().includes('easy')) {
-        popularityScore += 2; // Easy care plants are popular
+        popularityScore += 2;
       }
       
       if (plant.name && 
@@ -66,7 +57,7 @@ const selectPopularPlants = createSelector(
            plant.name.toLowerCase().includes('snake') ||
            plant.name.toLowerCase().includes('peace lily') ||
            plant.name.toLowerCase().includes('aloe'))) {
-        popularityScore += 1; // Commonly popular houseplants
+        popularityScore += 1;
       }
       
       return {
@@ -75,225 +66,36 @@ const selectPopularPlants = createSelector(
       };
     });
     
-    // Sort by popularity score and take top 6
     return plantsWithScores
       .sort((a, b) => b.popularity - a.popularity)
       .slice(0, 6);
   }
 );
 
-const selectPlantCategories = createSelector(
-  state => state.plants.plants,
-  state => state.plants.userPlants,
-  (plants, userPlants) => {
-    // Initialize category objects with empty arrays that will hold the actual plants
-    const categories = {
-      'Indoor Plants': [],
-      'Outdoor Plants': [],
-      'Low Light Plants': [],
-      'Succulents': [],
-      'Flowering Plants': [],
-      'Easy Care': [],
-      'Pet Friendly': [],
-      'Tropical Plants': [],
-      'Herbs': [],
-      'Air Purifying': []
-    };
-    
-    // Only proceed if we have plants data
-    if (plants && plants.length > 0) {
-      // Keep track of which plants have been added to which categories to avoid duplicates
-      const categoryPlantIds = {};
-      Object.keys(categories).forEach(category => {
-        categoryPlantIds[category] = new Set();
-      });
-      
-      plants.forEach(plant => {
-        const plantId = String(plant.id);
-        
-        // Indoor vs Outdoor based on light requirements or sunlight
-        if (plant.sunlight && Array.isArray(plant.sunlight)) {
-          const sunlightLevels = plant.sunlight.join(' ').toLowerCase();
-          if (sunlightLevels.includes('part shade') || sunlightLevels.includes('filtered') || 
-              sunlightLevels.includes('low light') || sunlightLevels.includes('medium')) {
-            if (!categoryPlantIds['Indoor Plants'].has(plantId)) {
-              categories['Indoor Plants'].push(plant);
-              categoryPlantIds['Indoor Plants'].add(plantId);
-            }
-          } 
-          if (sunlightLevels.includes('full sun')) {
-            if (!categoryPlantIds['Outdoor Plants'].has(plantId)) {
-              categories['Outdoor Plants'].push(plant);
-              categoryPlantIds['Outdoor Plants'].add(plantId);
-            }
-          }
-          
-          if (sunlightLevels.includes('low') || sunlightLevels.includes('shade')) {
-            if (!categoryPlantIds['Low Light Plants'].has(plantId)) {
-              categories['Low Light Plants'].push(plant);
-              categoryPlantIds['Low Light Plants'].add(plantId);
-            }
-          }
-        } else if (plant.light) {
-          const lightLevel = plant.light.toLowerCase();
-          if (lightLevel.includes('low') || lightLevel.includes('indirect')) {
-            if (!categoryPlantIds['Indoor Plants'].has(plantId)) {
-              categories['Indoor Plants'].push(plant);
-              categoryPlantIds['Indoor Plants'].add(plantId);
-            }
-            if (!categoryPlantIds['Low Light Plants'].has(plantId)) {
-              categories['Low Light Plants'].push(plant);
-              categoryPlantIds['Low Light Plants'].add(plantId);
-            }
-          } 
-          if (lightLevel.includes('full sun')) {
-            if (!categoryPlantIds['Outdoor Plants'].has(plantId)) {
-              categories['Outdoor Plants'].push(plant);
-              categoryPlantIds['Outdoor Plants'].add(plantId);
-            }
-          }
-        }
-        
-        // Succulents based on watering frequency or type
-        if ((plant.water && plant.water.toLowerCase().includes('2-3 weeks')) || 
-            (plant.watering && plant.watering.toLowerCase().includes('minimum'))) {
-          if (!categoryPlantIds['Succulents'].has(plantId)) {
-            categories['Succulents'].push(plant);
-            categoryPlantIds['Succulents'].add(plantId);
-          }
-        }
-        
-        // Flowering plants based on name or type
-        if (plant.name && 
-            (plant.name.toLowerCase().includes('lily') || 
-             plant.name.toLowerCase().includes('rose') || 
-             plant.name.toLowerCase().includes('orchid') ||
-             plant.name.toLowerCase().includes('flower'))) {
-          if (!categoryPlantIds['Flowering Plants'].has(plantId)) {
-            categories['Flowering Plants'].push(plant);
-            categoryPlantIds['Flowering Plants'].add(plantId);
-          }
-        }
-        
-        // Easy care plants based on drought_tolerant or care_level
-        if ((plant.drought_tolerant && plant.drought_tolerant) ||
-            (plant.careLevel && 
-            (plant.careLevel.toLowerCase().includes('easy') || 
-             plant.careLevel.toLowerCase().includes('very easy')))) {
-          if (!categoryPlantIds['Easy Care'].has(plantId)) {
-            categories['Easy Care'].push(plant);
-            categoryPlantIds['Easy Care'].add(plantId);
-          }
-        }
-        
-        // Pet friendly plants
-        if (plant.poisonous_to_pets === false || 
-            (plant.toxicity && plant.toxicity.toLowerCase().includes('non-toxic'))) {
-          if (!categoryPlantIds['Pet Friendly'].has(plantId)) {
-            categories['Pet Friendly'].push(plant);
-            categoryPlantIds['Pet Friendly'].add(plantId);
-          }
-        }
-        
-        // Tropical plants
-        const tropicalPlants = [
-          'Monstera', 'Palm', 'Philodendron', 'Calathea', 'Anthurium', 'Bird of Paradise',
-          'Banana', 'Ficus', 'Tropical', 'Orchid', 'Bromeliad', 'Alocasia', 'Croton'
-        ];
-        if (tropicalPlants.some(name => 
-          plant.name && plant.name.toLowerCase().includes(name.toLowerCase())
-        )) {
-          if (!categoryPlantIds['Tropical Plants'].has(plantId)) {
-            categories['Tropical Plants'].push(plant);
-            categoryPlantIds['Tropical Plants'].add(plantId);
-          }
-        }
-        
-        // Herbs
-        const herbNames = [
-          'Mint', 'Basil', 'Thyme', 'Oregano', 'Rosemary', 'Sage', 'Cilantro', 
-          'Parsley', 'Dill', 'Chives', 'Lavender', 'Lemongrass', 'Herb'
-        ];
-        if (herbNames.some(herb => 
-          plant.name && plant.name.toLowerCase().includes(herb.toLowerCase())
-        )) {
-          if (!categoryPlantIds['Herbs'].has(plantId)) {
-            categories['Herbs'].push(plant);
-            categoryPlantIds['Herbs'].add(plantId);
-          }
-        }
-        
-        // Air purifying plants
-        const airPurifiers = [
-          'Snake Plant', 'Pothos', 'Peace Lily', 'Spider Plant', 'Dracaena', 'Fern', 
-          'ZZ Plant', 'Rubber Plant', 'Boston Fern', 'Chinese Evergreen'
-        ];
-        if (airPurifiers.some(name => 
-          plant.name && plant.name.toLowerCase().includes(name.toLowerCase())
-        )) {
-          if (!categoryPlantIds['Air Purifying'].has(plantId)) {
-            categories['Air Purifying'].push(plant);
-            categoryPlantIds['Air Purifying'].add(plantId);
-          }
-        }
-      });
-    }
-    
-    // Add user-defined categories/locations
-    if (userPlants && userPlants.length > 0) {
-      // Group plants by location
-      const locationGroups = {};
-      userPlants.forEach(plant => {
-        if (plant.location) {
-          if (!locationGroups[plant.location]) {
-            locationGroups[plant.location] = [];
-          }
-          locationGroups[plant.location].push(plant);
-        }
-      });
-      
-      // Add location groups to categories
-      Object.entries(locationGroups).forEach(([location, plants]) => {
-        if (plants.length > 0 && !categories[location]) {
-          categories[location] = plants;
-        }
-      });
-    }
-    
-    // Filter out empty categories
-    const filteredCategories = {};
-    Object.entries(categories).forEach(([category, plants]) => {
-      if (plants.length > 0) {
-        filteredCategories[category] = plants;
-      }
-    });
-    
-    return filteredCategories;
-  }
-);
-
 const selectTodayReminders = createSelector(
   state => state.reminders.reminders,
-  reminders => {
+  state => state.plants.userPlants,
+  (reminders, userPlants) => {
     const today = new Date().toISOString().split('T')[0];
+    const userPlantIds = userPlants.map(plant => plant.id.toString());
+    
     return reminders.filter(reminder => 
-      reminder.nextDue === today && reminder.enabled
+      reminder.nextDue === today && 
+      reminder.enabled &&
+      userPlantIds.includes(reminder.plantId.toString())
     );
   }
 );
 
 // User Plant Item Component
 const UserPlantItem = ({ plant, onRemove, onPress }) => {
-  // Handle different image formats from Perenual API
   const getPlantImage = () => {
     if (!plant) return null;
     
-    // For Perenual API format
     if (plant.default_image && plant.default_image.medium_url) {
       return { uri: plant.default_image.medium_url };
     }
     
-    // Legacy image formats support
     if (typeof plant.image === 'number') {
       return plant.image; 
     }
@@ -306,7 +108,6 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
       return { uri: plant.image };
     }
     
-    // Placeholder for plants without images
     return null;
   };
   
@@ -361,7 +162,6 @@ const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Fetch plants and reminders on component mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -380,54 +180,10 @@ const HomeScreen = () => {
     fetchData();
   }, [dispatch]);
   
-  // Use memoized selectors
   const userPlants = useSelector(selectUserPlants);
   const popularPlants = useSelector(selectPopularPlants);
-  const categories = useSelector(selectPlantCategories);
   const todayReminders = useSelector(selectTodayReminders);
   
-  // Helper functions for categories
-  const getCategoryGradient = (category) => {
-    switch(category) {
-      case 'Indoor Plants':
-        return ['#00796B', '#00695C'];
-      case 'Outdoor Plants':
-        return ['#FF9800', '#F57C00'];
-      case 'Succulents':
-        return ['#7B1FA2', '#6A1B9A'];
-      case 'Flowering Plants':
-        return ['#D81B60', '#C2185B'];
-      case 'Easy Care':
-        return ['#4CAF50', '#388E3C'];
-      case 'Living Room':
-        return ['#5E35B1', '#512DA8'];
-      case 'Kitchen':
-        return ['#1565C0', '#0D47A1'];
-      case 'Drawing Room':
-        return ['#E65100', '#D84315'];
-      case 'Backyard':
-        return ['#6A1B9A', '#4A148C'];
-      default:
-        return ['#4CAF50', '#388E3C'];
-    }
-  };
-  
-  const getCategoryIcon = (category) => {
-    switch(category) {
-      case 'Indoor Plants': return 'home-outline';
-      case 'Outdoor Plants': return 'sunny-outline';
-      case 'Succulents': return 'water-outline'; 
-      case 'Flowering Plants': return 'flower-outline';
-      case 'Easy Care': return 'checkmark-circle-outline';
-      case 'Living Room': return 'home-outline';
-      case 'Kitchen': return 'cafe-outline';
-      case 'Drawing Room': return 'easel-outline';
-      case 'Backyard': return 'leaf-outline';
-      default: return 'leaf-outline';
-    }
-  };
-  
-  // Handle plant removal
   const handleRemovePlant = (plantId) => {
     Alert.alert(
       "Remove Plant",
@@ -448,162 +204,52 @@ const HomeScreen = () => {
     );
   };
   
-  // Navigate to plant detail
   const navigateToPlantDetail = (plantId) => {
     navigation.navigate('PlantDetail', { plantId });
   };
-  
-  // Render a popular plant item
+
   const renderPopularPlant = ({ item }) => {
-    // Handle different image formats from Perenual API
-    const getPlantImage = () => {
-      if (!item) return null;
-      
-      // For Perenual API format
-      if (item.default_image && item.default_image.medium_url) {
-        return { uri: item.default_image.medium_url };
-      }
-      
-      // Legacy image formats support
-      if (typeof item.image === 'number') {
-        return item.image; 
-      }
-      
-      if (item.image && item.image.uri) {
-        return { uri: item.image.uri };
-      }
-      
-      if (typeof item.image === 'string') {
-        return { uri: item.image };
-      }
-      
-      // Placeholder for plants without images
-      return null;
-    };
-    
-    const plantImage = getPlantImage();
-    const hasValidImage = !!plantImage;
-    
-    // Determine care level from watering or care_level
-    const determineCareLevel = () => {
-      if (item.careLevel) return item.careLevel;
-      
-      if (item.watering) {
-        if (item.watering === 'Minimum') return 'Easy';
-        if (item.watering === 'Average') return 'Medium';
-        if (item.watering === 'Frequent') return 'High';
-      }
-      
-      if (item.drought_tolerant) return 'Easy';
-      
-      return 'Medium';
-    };
-    
-    // Get species name from scientific_name or species
-    const getSpecies = () => {
-      if (item.scientific_name && item.scientific_name.length > 0) {
-        return item.scientific_name[0];
-      }
-      return item.species || 'Houseplant';
-    };
-    
-    // Get watering info from item
-    const getWateringInfo = () => {
-      if (item.water) return item.water;
-      if (item.watering === 'Minimum') return 'Every 2-3 weeks';
-      if (item.watering === 'Average') return 'Weekly';
-      if (item.watering === 'Frequent') return 'Every 3-4 days';
-      return 'As needed';
-    };
-    
-    // Get light info from item
-    const getLightInfo = () => {
-      if (item.light) return item.light;
-      
-      if (item.sunlight && Array.isArray(item.sunlight)) {
-        return item.sunlight[0];
-      }
-      
-      return 'Indirect Light';
-    };
-    
-    // Get icon for light
-    const getLightIcon = (lightInfo) => {
-      const light = lightInfo.toLowerCase();
-      if (light.includes('full') || light.includes('direct')) return 'sunny';
-      if (light.includes('part') || light.includes('filtered')) return 'partly-sunny';
-      return 'cloud';
-    };
-    
+    const plantImage = typeof item.image === 'number' ? item.image : 
+                      item.image && item.image.uri ? { uri: item.image.uri } :
+                      typeof item.image === 'string' ? { uri: item.image } :
+                      item.image_url ? { uri: item.image_url } :
+                      require('../../assets/monstera.png');
+
     return (
       <TouchableOpacity 
-        style={styles.popularPlantItem}
-        onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
-        activeOpacity={0.9}
+        style={styles.popularPlantCard}
+        onPress={() => navigateToPlantDetail(item.id)}
       >
-        <View style={styles.popularPlantCard}>
-          {hasValidImage ? (
-            <Image 
-              source={plantImage} 
-              style={styles.popularPlantImage} 
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.popularPlantImage, styles.plantPlaceholder]}>
-              <Text style={styles.plantPlaceholderText}>{item.name ? item.name.charAt(0) : "P"}</Text>
-            </View>
-          )}
-          
+        <View style={styles.popularPlantImageContainer}>
+          <Image 
+            source={plantImage} 
+            style={styles.popularPlantImage} 
+            resizeMode="cover"
+          />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
             style={styles.popularPlantGradient}
           />
-          
-          <View style={styles.careLevelBadge}>
-            <Text style={styles.careLevelText}>{determineCareLevel()}</Text>
-          </View>
-          
-          <View style={styles.popularPlantInfo}>
-            <Text style={styles.popularPlantName} numberOfLines={1}>{item.name || item.common_name}</Text>
-            <Text style={styles.popularPlantSpecies} numberOfLines={1}>{getSpecies()}</Text>
-            
-            <View style={styles.plantDetailsRow}>
-              <View style={styles.plantDetailItem}>
-                <MaterialCommunityIcons name="water-outline" size={14} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.plantDetailText}>{getWateringInfo()}</Text>
-              </View>
-              
-              <View style={styles.plantDetailItem}>
-                <Ionicons 
-                  name={getLightIcon(getLightInfo())} 
-                  size={14} 
-                  color="rgba(255,255,255,0.9)" 
-                />
-                <Text style={styles.plantDetailText}>{getLightInfo().split(' ')[0]}</Text>
-              </View>
-            </View>
-          </View>
+        </View>
+        <View style={styles.popularPlantInfo}>
+          <Text style={styles.popularPlantName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.popularPlantSpecies} numberOfLines={1}>{item.species || 'Houseplant'}</Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Render a reminder/alert item
   const renderReminderItem = ({ item }) => {
-    // Find the associated plant for this reminder
     const plant = item.plantId ? 
       userPlants.find(p => p.id.toString() === item.plantId.toString()) : null;
     
-    // Get plant image with fallbacks
     const getPlantImage = () => {
       if (!plant) return null;
       
-      // Check for Perenual API image format
       if (plant.default_image && plant.default_image.medium_url) {
         return { uri: plant.default_image.medium_url };
       }
       
-      // Legacy formats
       if (typeof plant.image === 'number') return plant.image;
       if (plant.image && plant.image.uri) return { uri: plant.image.uri };
       if (typeof plant.image === 'string') return { uri: plant.image };
@@ -614,7 +260,6 @@ const HomeScreen = () => {
     const plantImage = getPlantImage();
     const hasImage = !!plantImage;
     
-    // Get reminder title based on type if not provided
     const getReminderTitle = () => {
       if (item.title) return item.title;
       
@@ -667,7 +312,6 @@ const HomeScreen = () => {
     );
   };
 
-  // Render loading or error state
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -699,29 +343,20 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Modern Header with Blur Background */}
-      <View style={styles.header}>
+      {/* Modern Header */}
+      <LinearGradient
+        colors={['#4CAF50', '#2E7D32']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.header}
+      >
         <View style={styles.headerContent}>
-          <View>
+          <View style={styles.headerTextContainer}>
             <Text style={styles.welcomeText}>Welcome to</Text>
             <Text style={styles.title}>PlantPal</Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => navigation.navigate('Search')}
-            >
-              <Ionicons name="search" size={22} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconButton} 
-              onPress={() => navigation.navigate('AddPlant')}
-            >
-              <Ionicons name="add" size={22} color="#333" />
-            </TouchableOpacity>
-          </View>
         </View>
-      </View>
+      </LinearGradient>
       
       <ScrollView 
         style={styles.scrollView} 
@@ -729,7 +364,7 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.contentContainer}>
-          {/* Quick Actions Section with Gradient Cards */}
+          {/* Quick Actions Section */}
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={[styles.quickActionCard, {backgroundColor: '#4CAF50'}]}
@@ -772,9 +407,17 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* My Plants Collection Card */}
+          {/* My Collection Section - Redesigned */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Collection</Text>
+            {userPlants.length > 0 && (
+              <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => navigation.navigate('CollectionView')}
+              >
+                <Text style={styles.viewAllButtonText}>View All</Text>
+              </TouchableOpacity>
+            )}
           </View>
           
           <View style={styles.myPlantsSection}>
@@ -799,36 +442,6 @@ const HomeScreen = () => {
                 
                 <View style={styles.plantStatCard}>
                   <View style={styles.plantStatIconContainer}>
-                    <Ionicons name="home-outline" size={20} color="#4CAF50" />
-                  </View>
-                  <View style={styles.plantStatTextContainer}>
-                    <Text style={styles.plantStatNumber}>
-                      {userPlants.filter(p => p.location === 'Indoor' || 
-                        (!p.light || !p.light.includes('Full sun'))).length}
-                    </Text>
-                    <Text style={styles.plantStatLabel}>Indoor</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.statDivider} />
-                
-                <View style={styles.plantStatCard}>
-                  <View style={styles.plantStatIconContainer}>
-                    <Ionicons name="sunny-outline" size={22} color="#4CAF50" />
-                  </View>
-                  <View style={styles.plantStatTextContainer}>
-                    <Text style={styles.plantStatNumber}>
-                      {userPlants.filter(p => p.location === 'Outdoor' || 
-                        (p.light && p.light.includes('Full sun'))).length}
-                    </Text>
-                    <Text style={styles.plantStatLabel}>Outdoor</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.statDivider} />
-                
-                <View style={styles.plantStatCard}>
-                  <View style={styles.plantStatIconContainer}>
                     <Ionicons name="heart-outline" size={22} color="#4CAF50" />
                   </View>
                   <View style={styles.plantStatTextContainer}>
@@ -841,37 +454,30 @@ const HomeScreen = () => {
               </View>
               
               {userPlants.length > 0 ? (
-                <>
-                  <View style={styles.userPlantsListContainer}>
-                    <Text style={styles.userPlantsListTitle}>Your Plants:</Text>
-                    {userPlants.map(plant => (
-                      <UserPlantItem 
-                        key={plant.id} 
-                        plant={plant} 
-                        onRemove={handleRemovePlant}
-                        onPress={() => navigateToPlantDetail(plant.id)}
-                      />
-                    ))}
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.addMoreButton}
-                    onPress={() => navigation.navigate('AddPlant')}
-                  >
-                    <Text style={styles.addMoreButtonText}>Add more plants</Text>
-                  </TouchableOpacity>
-                </>
+                <FlatList
+                  data={userPlants.slice(0, 3)}
+                  renderItem={({ item }) => (
+                    <UserPlantItem 
+                      plant={item} 
+                      onRemove={handleRemovePlant}
+                      onPress={() => navigateToPlantDetail(item.id)}
+                    />
+                  )}
+                  keyExtractor={item => item.id.toString()}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.userPlantsList}
+                />
               ) : (
-                <TouchableOpacity 
-                  style={styles.startButton}
-                  onPress={() => navigation.navigate('AddPlant')}
-                >
-                  <Text style={styles.startButtonText}>Start your collection</Text>
-                </TouchableOpacity>
+                <View style={styles.emptyCollectionContainer}>
+                  <Ionicons name="leaf-outline" size={48} color="#4CAF50" />
+                  <Text style={styles.emptyCollectionText}>Your collection is empty</Text>
+                  <Text style={styles.emptyCollectionSubtext}>Scan a plant to add it to your collection</Text>
+                </View>
               )}
             </LinearGradient>
           </View>
 
-          {/* Popular Plants Section - Only show if we have plants with images */}
+          {/* Popular Plants Section */}
           {popularPlants.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
@@ -889,73 +495,11 @@ const HomeScreen = () => {
                 snapToInterval={width * 0.65 + 16}
                 snapToAlignment="center"
                 ItemSeparatorComponent={() => <View style={{width: 16}} />}
-                ListEmptyComponent={
-                  <View style={styles.emptyListContainer}>
-                    <Text style={styles.emptyListText}>No plants found</Text>
-                  </View>
-                }
               />
             </>
           )}
-
-          {/* Plant Categories - Only show if we have any categories with plants */}
-          {Object.keys(categories).length > 0 && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Categories</Text>
-              </View>
-              
-              <View style={styles.categoriesContainer}>
-                {/* Show most common categories first with accurate counts */}
-                {Object.entries(categories)
-                  .sort(([, plantsA], [, plantsB]) => plantsB.length - plantsA.length) // Sort by count
-                  .slice(0, 6) // Show only top 6 categories
-                  .map(([category, plants]) => {
-                    // Remove duplicates by ID
-                    const uniquePlantIds = new Set();
-                    const uniquePlants = plants.filter(plant => {
-                      if (!plant) return false;
-                      const id = String(plant.id);
-                      if (uniquePlantIds.has(id)) {
-                        return false;
-                      }
-                      uniquePlantIds.add(id);
-                      return true;
-                    });
-
-                    return (
-                      <TouchableOpacity
-                        key={category}
-                        style={styles.categoryCard}
-                        onPress={() => navigation.navigate('CategoryPlants', { category })}
-                        activeOpacity={0.8}
-                      >
-                        <LinearGradient
-                          colors={getCategoryGradient(category)}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.categoryGradient}
-                        >
-                          <View style={styles.categoryContent}>
-                            <View style={styles.categoryIconContainer}>
-                              <Ionicons name={getCategoryIcon(category)} size={22} color="white" />
-                            </View>
-                            <View style={styles.categoryInfo}>
-                              <Text style={styles.categoryName}>{category}</Text>
-                              <Text style={styles.categoryCount}>
-                                {uniquePlants.length} {uniquePlants.length === 1 ? 'Plant' : 'Plants'}
-                              </Text>
-                            </View>
-                          </View>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </View>
-            </>
-          )}
           
-          {/* Alerts Section - Only show if we have reminders for today */}
+          {/* Alerts Section */}
           {todayReminders.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
@@ -968,24 +512,7 @@ const HomeScreen = () => {
             </>
           )}
           
-          {/* Display a message if no data is available */}
-          {popularPlants.length === 0 && Object.keys(categories).length === 0 && (
-            <View style={styles.noDataContainer}>
-              <Ionicons name="leaf-outline" size={64} color="#CCCCCC" />
-              <Text style={styles.noDataTitle}>No Plants Found</Text>
-              <Text style={styles.noDataMessage}>
-                Start adding plants to your collection or search for new plants to explore.
-              </Text>
-              <TouchableOpacity 
-                style={styles.exploreButton}
-                onPress={() => navigation.navigate('Search')}
-              >
-                <Text style={styles.exploreButtonText}>Explore Plants</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          
-          {/* Bottom Space for Tab Bar */}
+          {/* Bottom Space */}
           <View style={styles.bottomSpace} />
         </View>
       </ScrollView>
@@ -1087,19 +614,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 8,
       },
     }),
   },
@@ -1107,27 +634,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   welcomeText: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 2,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: 'white',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F5F5F5',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
@@ -1269,17 +801,13 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 8,
   },
-  popularPlantItem: {
+  popularPlantCard: {
     width: width * 0.65,
     height: 220,
     marginRight: 16,
-  },
-  popularPlantCard: {
-    width: '100%',
-    height: '100%',
     borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
+    backgroundColor: '#FFFFFF',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -1292,6 +820,11 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  popularPlantImageContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
   popularPlantImage: {
     width: '100%',
     height: '100%',
@@ -1302,22 +835,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: '50%',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  careLevelBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  careLevelText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#4CAF50',
   },
   popularPlantInfo: {
     position: 'absolute',
@@ -1329,14 +846,12 @@ const styles = StyleSheet.create({
   popularPlantName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   popularPlantSpecies: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontStyle: 'italic',
-    marginBottom: 8,
   },
   plantDetailsRow: {
     flexDirection: 'row',
@@ -1394,63 +909,6 @@ const styles = StyleSheet.create({
     color: '#757575',
     marginBottom: 4,
   },
-  categoriesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  categoryCard: {
-    width: width * 0.44,
-    height: 90,
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  categoryGradient: {
-    width: '100%',
-    height: '100%',
-  },
-  categoryContent: {
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: '100%',
-  },
-  categoryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  categoryInfo: {
-    flex: 1,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
-  },
-  categoryCount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
   bottomSpace: {
     height: 100,
   },
@@ -1474,9 +932,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
   },
-  userPlantsListContainer: {
-    marginTop: 16,
-    marginBottom: 16,
+  userPlantsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   userPlantsListTitle: {
     fontSize: 16,
@@ -1488,11 +946,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   userPlantCard: {
     flexDirection: 'row',
@@ -1500,9 +964,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   userPlantImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     marginRight: 12,
   },
   userPlantInfo: {
@@ -1540,6 +1004,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFEBEE',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  viewAllButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 16,
+  },
+  viewAllButtonText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  emptyCollectionContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCollectionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyCollectionSubtext: {
+    fontSize: 14,
+    color: '#757575',
+    textAlign: 'center',
   },
 });
 
