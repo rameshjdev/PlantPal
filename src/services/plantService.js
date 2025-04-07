@@ -1,5 +1,13 @@
 import axios from 'axios';
 import { PERENUAL_API_KEY } from '@env';
+import { supabase } from './supabaseService';
+import { 
+  fetchPlantsFromDB, 
+  addPlantToDB, 
+  updatePlantInDB, 
+  deletePlantFromDB, 
+  getPlantByIdFromDB 
+} from './plantDatabaseService';
 
 // Perenual API configuration
 const PERENUAL_API_KEY_VALUE = PERENUAL_API_KEY;
@@ -105,9 +113,23 @@ const api = axios.create({
  * @param {number} page - Page number for pagination (optional)
  * @returns {Promise<Array>} - List of plants
  */
+// Modified to check Supabase first, then fallback to API
 export const fetchPlants = async (lastId = null, page = 1) => {
   try {
-    // Check if we're already rate limited
+    // First try to get plants from Supabase
+    const { data: userPlants, error } = await fetchPlantsFromDB();
+    
+    if (userPlants && userPlants.length > 0) {
+      console.log(`Found ${userPlants.length} plants in database`);
+      return userPlants;
+    }
+
+    // If no plants in database or error, fallback to API
+    if (error) {
+      console.log('Error fetching from database, falling back to API:', error);
+    }
+
+    // Original API fetching logic
     if (isRateLimited && Date.now() < rateLimitResetTime) {
       console.log('API is rate limited, using fallback data');
       return FALLBACK_PLANTS.slice(0, 100); // Return first 100 fallback plants
@@ -219,6 +241,19 @@ export const fetchPlants = async (lastId = null, page = 1) => {
  */
 export const searchPlants = async (query) => {
   try {
+    // Search in Supabase first
+    const { data: dbResults, error } = await supabase
+      .from('plants')
+      .select('*')
+      .or(`name.ilike.%${query}%,species.ilike.%${query}%`)
+      .order('name', { ascending: true });
+
+    if (dbResults && dbResults.length > 0) {
+      console.log(`Found ${dbResults.length} matches in database`);
+      return dbResults;
+    }
+
+    // If no results in database, search API
     // If we're rate limited, search through fallback or cached plants
     if ((isRateLimited && Date.now() < rateLimitResetTime) || plantsCache.length === 0) {
       console.log('API unavailable for search, using local data');
@@ -297,77 +332,69 @@ const searchFallbackData = (query) => {
  */
 export const getPlantById = async (id) => {
   try {
-    // Check if it's a local fallback plant
-    if (id.toString().startsWith('local-')) {
-      const localPlant = FALLBACK_PLANTS.find(p => p.id === id);
-      if (localPlant) {
-        return { 
-          ...localPlant, 
-          description: 'This is a locally generated plant displayed when the API is unavailable.',
-          indoor: Math.random() > 0.5,
-          edible: Math.random() > 0.7,
-          maintenance: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)],
-          growth_rate: ['Slow', 'Moderate', 'Fast'][Math.floor(Math.random() * 3)],
-          data: [
-            { key: 'Origin', value: ['Asia', 'Africa', 'North America', 'South America', 'Europe', 'Australia'][Math.floor(Math.random() * 6)] },
-            { key: 'Light', value: localPlant.sunlight.join(', ').replace(/_/g, ' ') },
-            { key: 'Watering', value: localPlant.watering },
-            { key: 'Care Level', value: localPlant.care_level },
-            { key: 'Pet Friendly', value: localPlant.poisonous_to_pets ? 'No' : 'Yes' }
-          ]
-        };
+    // Check Supabase first
+    const { data: dbPlant, error } = await getPlantByIdFromDB(id);
+    
+    if (dbPlant) {
+      console.log(`Found plant ${id} in database`);
+      return dbPlant;
+    }
+
+    // If not in database, check API
+    // If we're rate limited, search through fallback or cached plants
+    if ((isRateLimited && Date.now() < rateLimitResetTime) || plantsCache.length === 0) {
+      console.log('API unavailable for search, using local data');
+      
+      // Search in fallback data
+      const searchTermLower = query.toLowerCase();
+      return FALLBACK_PLANTS.filter(plant => 
+        plant.name.toLowerCase().includes(searchTermLower) || 
+        (plant.species && plant.species.toLowerCase().includes(searchTermLower))
+      );
+    }
+    
+    // If we have cached plants, search through them first
+    if (plantsCache.length > 0) {
+      console.log('Searching through cached plants');
+      const searchTermLower = query.toLowerCase();
+      const cachedResults = plantsCache.filter(plant => 
+        plant.name.toLowerCase().includes(searchTermLower) || 
+        (plant.species && plant.species.toLowerCase().includes(searchTermLower))
+      );
+      
+      // If we found enough matches in cache, return them
+      if (cachedResults.length >= 5) {
+        console.log(`Found ${cachedResults.length} matches in cache`);
+        return cachedResults;
       }
     }
     
-    // Check if the plant is in our cache
-    const cachedPlant = plantsCache.find(p => p.id === id.toString());
-    if (cachedPlant) {
-      console.log(`Found plant ${id} in cache`);
-      return cachedPlant;
-    }
-    
-    // If we're rate limited, throw an error
-    if (isRateLimited && Date.now() < rateLimitResetTime) {
-      throw new Error('API currently unavailable due to rate limiting. Please try again later.');
-    }
-    
-    // Fetch from API
+    // If not rate limited, try API search
     try {
-      console.log(`Fetching plant ${id} from API`);
-      const response = await api.get(`/v2/species/details/${id}`);
+      console.log(`Searching API for "${query}"`);
+      const response = await api.get('/v2/species-list', { 
+        params: { q: query }
+      });
       
-      if (response.data) {
-        return formatSinglePlant(response.data);
-      } else {
-        throw new Error('Plant information not available');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        const results = formatPlantData(response.data.data);
+        console.log(`Search returned ${results.length} results`);
+        return results.length > 0 ? results : searchFallbackData(query);
       }
     } catch (error) {
       if (error.response && error.response.status === 429) {
-        console.log('Rate limit hit while fetching plant details');
+        console.log('Rate limit hit during search');
         isRateLimited = true;
         rateLimitResetTime = Date.now() + RATE_LIMIT_COOLDOWN;
       }
-      
-      // If fetching fails, create a placeholder plant
-      const placeholderPlant = FALLBACK_PLANTS[id % FALLBACK_PLANTS.length];
-      return {
-        ...placeholderPlant,
-        id: id.toString(),
-        description: 'The API is currently unavailable. This is a placeholder plant.',
-      };
+      console.error('Search API error:', error);
     }
+    
+    // If API search failed, search fallback data
+    return searchFallbackData(query);
   } catch (error) {
-    console.error(`Error fetching plant with ID ${id}:`, error);
-    
-    // Return a fallback plant with the requested ID
-    const fallbackIndex = Math.abs(parseInt(id)) % FALLBACK_PLANTS.length;
-    const fallbackPlant = FALLBACK_PLANTS[fallbackIndex];
-    
-    return {
-      ...fallbackPlant,
-      id: id.toString(),
-      description: 'Failed to fetch plant details. This is a placeholder.'
-    };
+    console.error('Error in searchPlants:', error);
+    return searchFallbackData(query);
   }
 };
 
@@ -745,5 +772,8 @@ export default {
   fetchPlants,
   searchPlants,
   getPlantById,
-  getPopularPlants
-}; 
+  getPopularPlants,
+  savePlant,
+  updatePlant,
+  deletePlant
+};
