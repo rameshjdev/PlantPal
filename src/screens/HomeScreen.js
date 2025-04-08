@@ -23,6 +23,7 @@ import { createSelector } from 'reselect';
 import { fetchPlants, removePlant } from '../store/plantsSlice';
 import { fetchReminders } from '../store/remindersSlice';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -87,27 +88,68 @@ const selectTodayReminders = createSelector(
   }
 );
 
+const selectPlantCategories = createSelector(
+  state => state.plants.plants,
+  allPlants => {
+    // Extract unique categories from all plants
+    const categories = allPlants.reduce((cats, plant) => {
+      // Skip plants without a category or with null/undefined category
+      if (!plant?.category) return cats;
+      
+      // Handle both array and string categories
+      const plantCategories = Array.isArray(plant.category) ? plant.category : [plant.category];
+      
+      // Process each category for this plant
+      plantCategories.forEach(category => {
+        if (!category) return; // Skip null/undefined categories within array
+        
+        // Normalize category name (remove extra spaces, convert to lowercase)
+        const normalizedCategory = category.toString().trim().toLowerCase();
+        
+        // Check if this category is already in our array
+        const existingCat = cats.find(c => c.normalized === normalizedCategory);
+        
+        if (!existingCat) {
+          cats.push({
+            id: normalizedCategory.replace(/\s+/g, '-'),
+            name: category, // Keep original case for display
+            normalized: normalizedCategory,
+            count: 1,
+            image: plant.image || plant.default_image?.medium_url
+          });
+        } else {
+          existingCat.count += 1;
+          // Update image only if the current one is missing
+          if (!existingCat.image && (plant.image || plant.default_image?.medium_url)) {
+            existingCat.image = plant.image || plant.default_image?.medium_url;
+          }
+        }
+      });
+      
+      return cats;
+    }, []);
+    
+    // Sort categories by count (most plants first)
+    return categories.sort((a, b) => b.count - a.count).slice(0, 10); // Limit to 10 categories
+  }
+);
+
 // User Plant Item Component
 const UserPlantItem = ({ plant, onRemove, onPress }) => {
   const getPlantImage = () => {
     if (!plant) return null;
     
-    if (plant.default_image && plant.default_image.medium_url) {
-      return { uri: plant.default_image.medium_url };
+    // First try to get the image from the plant object
+    if (plant.image) {
+      if (typeof plant.image === 'string') {
+        return { uri: plant.image };
+      }
+      if (plant.image.uri) {
+        return { uri: plant.image.uri };
+      }
     }
     
-    if (typeof plant.image === 'number') {
-      return plant.image; 
-    }
-    
-    if (plant.image && plant.image.uri) {
-      return { uri: plant.image.uri };
-    }
-    
-    if (typeof plant.image === 'string') {
-      return { uri: plant.image };
-    }
-    
+    // If no image is found, return null
     return null;
   };
   
@@ -129,7 +171,7 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
           />
         ) : (
           <View style={[styles.userPlantImage, styles.plantPlaceholder]}>
-            <Text style={styles.plantPlaceholderText}>{plant.name ? plant.name.charAt(0) : "P"}</Text>
+            <Ionicons name="leaf-outline" size={24} color="#4CAF50" />
           </View>
         )}
         
@@ -151,6 +193,65 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
         >
           <Ionicons name="trash-outline" size={20} color="#F44336" />
         </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// Add this as a new component
+const CategoryCard = ({ category }) => {
+  const navigation = useNavigation();
+  const theme = useTheme();
+  
+  // Generate a consistent color based on category name
+  const getCategoryColor = (categoryName) => {
+    const colors = [
+      '#4CAF50', '#2196F3', '#9C27B0', '#FF9800', 
+      '#03A9F4', '#E91E63', '#009688', '#673AB7'
+    ];
+    
+    // Simple hash function to get consistent index
+    const hash = categoryName.split('').reduce(
+      (acc, char) => acc + char.charCodeAt(0), 0
+    );
+    
+    return colors[hash % colors.length];
+  };
+  
+  const categoryColor = getCategoryColor(category.normalized);
+
+  return (
+    <TouchableOpacity
+      style={styles.categoryCard}
+      onPress={() => navigation.navigate('CollectionView', { 
+        filter: 'category',
+        categoryName: category.name,
+        showAllPlants: true
+      })}
+    >
+      <View style={[styles.categoryCircle, { borderColor: categoryColor }]}>
+        {category.image ? (
+          <Image
+            source={{ uri: category.image }}
+            style={styles.categoryImage}
+          />
+        ) : (
+          <View style={[styles.categoryImage, { backgroundColor: `${categoryColor}15` }]}>
+            <Ionicons name="leaf" size={32} color={categoryColor} />
+          </View>
+        )}
+        <LinearGradient
+          colors={['transparent', `${categoryColor}80`]}
+          style={styles.categoryGradient}
+        />
+      </View>
+      <View style={styles.categoryTextContainer}>
+        <Text style={styles.categoryName} numberOfLines={1}>
+          {category.name}
+        </Text>
+        <View style={[styles.categoryCountContainer, { backgroundColor: categoryColor }]}>
+          <Text style={styles.categoryCount}>{category.count}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -183,6 +284,7 @@ const HomeScreen = () => {
   const userPlants = useSelector(selectUserPlants);
   const popularPlants = useSelector(selectPopularPlants);
   const todayReminders = useSelector(selectTodayReminders);
+  const plantCategories = useSelector(selectPlantCategories);
   
   const handleRemovePlant = (plantId) => {
     Alert.alert(
@@ -206,6 +308,15 @@ const HomeScreen = () => {
   
   const navigateToPlantDetail = (plantId) => {
     navigation.navigate('PlantDetail', { plantId });
+  };
+
+  const navigateToCategory = (categoryName) => {
+    // Navigate to a filtered view of all plants by category, not just user's collection
+    navigation.navigate('CollectionView', { 
+      filter: 'category',
+      categoryName: categoryName,
+      showAllPlants: true  // Add this flag to indicate we want to show all plants, not just user's
+    });
   };
 
   const renderPopularPlant = ({ item }) => {
@@ -477,6 +588,29 @@ const HomeScreen = () => {
             </LinearGradient>
           </View>
 
+          {/* Categories Section - Add this after My Collection Section */}
+          {plantCategories.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Categories</Text>
+              </View>
+              
+              <FlatList
+                data={plantCategories}
+                renderItem={({ item }) => (
+                  <CategoryCard 
+                    category={item} 
+                  />
+                )}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesContainer}
+                ItemSeparatorComponent={() => <View style={{width: 16}} />}
+              />
+            </>
+          )}
+
           {/* Popular Plants Section */}
           {popularPlants.length > 0 && (
             <>
@@ -507,7 +641,11 @@ const HomeScreen = () => {
               </View>
               
               <View style={styles.remindersContainer}>
-                {todayReminders.map(reminder => renderReminderItem({ item: reminder }))}
+                {todayReminders.map((reminder, index) => (
+                  <View key={`reminder-${reminder.id}-${index}`}>
+                    {renderReminderItem({ item: reminder })}
+                  </View>
+                ))}
               </View>
             </>
           )}
@@ -912,36 +1050,6 @@ const styles = StyleSheet.create({
   bottomSpace: {
     height: 100,
   },
-  plantPlaceholder: {
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  plantPlaceholderText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  reminderPlaceholder: {
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reminderPlaceholderText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  userPlantsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  userPlantsListTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212121',
-    marginBottom: 12,
-  },
   userPlantItem: {
     marginBottom: 12,
     borderRadius: 12,
@@ -968,6 +1076,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: 12,
+    backgroundColor: '#E8F5E9',
   },
   userPlantInfo: {
     flex: 1,
@@ -1032,6 +1141,96 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#757575',
     textAlign: 'center',
+  },
+  plantPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+  },
+  reminderPlaceholder: {
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reminderPlaceholderText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  userPlantsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  userPlantsListTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 12,
+  },
+  categoriesContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 8
+  },
+  categoryCard: {
+    width: 110,
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  categoryCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '50%',
+  },
+  categoryTextContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  categoryCountContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  categoryCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

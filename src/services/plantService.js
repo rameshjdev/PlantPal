@@ -5,7 +5,8 @@ import {
   updatePlantInDB, 
   deletePlantFromDB, 
   getPlantByIdFromDB,
-  searchPlantsInDB 
+  searchPlantsInDB,
+  cache
 } from './plantDatabaseService';
 
 /**
@@ -72,6 +73,12 @@ const plantService = {
     try {
       const { data: plant, error } = await addPlantToDB(plantData);
       if (error) throw error;
+      
+      // Invalidate caches
+      cache.plants.data = null;
+      cache.plants.timestamp = null;
+      cache.searchResults.clear();
+      
       return plant;
     } catch (error) {
       console.error('Error in addPlant:', error);
@@ -84,6 +91,13 @@ const plantService = {
     try {
       const { data: plant, error } = await updatePlantInDB(plantId, updates);
       if (error) throw error;
+      
+      // Invalidate caches
+      cache.plants.data = null;
+      cache.plants.timestamp = null;
+      cache.plantById.delete(plantId);
+      cache.searchResults.clear();
+      
       return plant;
     } catch (error) {
       console.error('Error in updatePlant:', error);
@@ -96,6 +110,13 @@ const plantService = {
     try {
       const { error } = await deletePlantFromDB(plantId);
       if (error) throw error;
+      
+      // Invalidate caches
+      cache.plants.data = null;
+      cache.plants.timestamp = null;
+      cache.plantById.delete(plantId);
+      cache.searchResults.clear();
+      
       return true;
     } catch (error) {
       console.error('Error in deletePlant:', error);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -13,21 +13,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleReminderEnabled, markReminderCompleted } from '../store/remindersSlice';
+import { toggleReminderEnabled, markReminderCompleted, fetchReminders } from '../store/remindersSlice';
 
 const AllAlertsScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const [filter, setFilter] = useState('all'); // 'all', 'today', 'upcoming', 'completed'
   
-  // Get all reminders
+  // Get all reminders and loading state
   const reminders = useSelector(state => state.reminders.reminders);
+  const status = useSelector(state => state.reminders.status);
+  
+  // Fetch reminders on component mount
+  useEffect(() => {
+    console.log('Fetching reminders...');
+    dispatch(fetchReminders());
+  }, [dispatch]);
   
   // Get current date for filtering
   const today = new Date().toISOString().split('T')[0];
   
   // Filter reminders based on the selected filter
   const filteredReminders = reminders.filter(reminder => {
+    if (!reminder) return false;
+    
+    console.log('Checking reminder:', reminder);
+    
     if (filter === 'all') return true;
     if (filter === 'today') return reminder.nextDue === today;
     if (filter === 'upcoming') return reminder.nextDue > today;
@@ -36,6 +47,11 @@ const AllAlertsScreen = () => {
     }
     return true;
   });
+
+  console.log('All reminders:', reminders);
+  console.log('Filtered reminders:', filteredReminders);
+  console.log('Current filter:', filter);
+  console.log('Today\'s date:', today);
 
   const handleToggleEnabled = (reminderId) => {
     dispatch(toggleReminderEnabled(reminderId));
@@ -49,6 +65,7 @@ const AllAlertsScreen = () => {
   };
 
   const renderReminderItem = ({ item }) => {
+    console.log('Rendering reminder item:', item);
     const isToday = item.nextDue === today;
     const isPast = item.nextDue < today;
     
@@ -146,6 +163,65 @@ const AllAlertsScreen = () => {
     </View>
   );
 
+  const renderContent = () => {
+    if (status === 'loading') {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="hourglass-outline" size={60} color="#CCCCCC" />
+          <Text style={styles.emptyText}>Loading reminders...</Text>
+        </View>
+      );
+    }
+
+    if (status === 'failed') {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={60} color="#FF5252" />
+          <Text style={styles.emptyText}>Failed to load reminders</Text>
+          <TouchableOpacity 
+            style={styles.createButton}
+            onPress={() => dispatch(fetchReminders())}
+          >
+            <Text style={styles.createButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (filteredReminders.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="notifications-off-outline" size={60} color="#CCCCCC" />
+          <Text style={styles.emptyText}>No alerts found</Text>
+          <Text style={styles.emptySubtext}>
+            {filter === 'all' 
+              ? 'You have no plant care alerts setup yet' 
+              : filter === 'today'
+                ? 'You have no alerts for today'
+                : filter === 'upcoming'
+                  ? 'You have no upcoming alerts'
+                  : 'You have no completed alerts'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.createButton}
+            onPress={() => navigation.navigate('SetReminder')}
+          >
+            <Text style={styles.createButtonText}>Create Alert</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filteredReminders}
+        renderItem={renderReminderItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.reminderList}
+      />
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -166,35 +242,7 @@ const AllAlertsScreen = () => {
       </View>
 
       {renderFilterButtons()}
-
-      {filteredReminders.length > 0 ? (
-        <FlatList
-          data={filteredReminders}
-          renderItem={renderReminderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.reminderList}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={60} color="#CCCCCC" />
-          <Text style={styles.emptyText}>No alerts found</Text>
-          <Text style={styles.emptySubtext}>
-            {filter === 'all' 
-              ? 'You have no plant care alerts setup yet' 
-              : filter === 'today'
-                ? 'You have no alerts for today'
-                : filter === 'upcoming'
-                  ? 'You have no upcoming alerts'
-                  : 'You have no completed alerts'}
-          </Text>
-          <TouchableOpacity 
-            style={styles.createButton}
-            onPress={() => navigation.navigate('SetReminder')}
-          >
-            <Text style={styles.createButtonText}>Create Alert</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {renderContent()}
     </SafeAreaView>
   );
 };

@@ -3,11 +3,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // Async thunk for fetching reminders (simulated API call)
 export const fetchReminders = createAsyncThunk(
   'reminders/fetchReminders',
-  async () => {
+  async (_, { getState }) => {
     // In a real app, this would be an API call
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(initialReminders);
+        // Return the current reminders from the state
+        const state = getState();
+        resolve(state.reminders.reminders);
       }, 500);
     });
   }
@@ -17,6 +19,7 @@ export const fetchReminders = createAsyncThunk(
 export const addReminder = createAsyncThunk(
   'reminders/addReminder',
   async (reminder) => {
+    console.log('Adding reminder:', reminder);
     // In a real app, this would be an API call
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -31,6 +34,7 @@ export const addReminder = createAsyncThunk(
 export const updateReminder = createAsyncThunk(
   'reminders/updateReminder',
   async (reminder) => {
+    console.log('Updating reminder:', reminder);
     // In a real app, this would be an API call
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -52,46 +56,6 @@ export const deleteReminder = createAsyncThunk(
     });
   }
 );
-
-// Mock initial reminders data
-const initialReminders = [
-  {
-    id: '1',
-    plantId: '1',
-    plantName: 'Monstera',
-    type: 'watering',
-    frequency: 'weekly',
-    day: 'Monday',
-    time: '09:00',
-    enabled: true,
-    lastCompleted: '2023-06-15',
-    nextDue: '2023-06-22',
-  },
-  {
-    id: '2',
-    plantId: '1',
-    plantName: 'Monstera',
-    type: 'fertilizing',
-    frequency: 'monthly',
-    day: null,
-    time: '10:00',
-    enabled: true,
-    lastCompleted: '2023-06-01',
-    nextDue: '2023-07-01',
-  },
-  {
-    id: '3',
-    plantId: '2',
-    plantName: 'Snake Plant',
-    type: 'watering',
-    frequency: 'biweekly',
-    day: 'Friday',
-    time: '18:00',
-    enabled: true,
-    lastCompleted: '2023-06-10',
-    nextDue: '2023-06-24',
-  },
-];
 
 const remindersSlice = createSlice({
   name: 'reminders',

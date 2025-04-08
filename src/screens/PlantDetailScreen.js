@@ -456,7 +456,7 @@ const PlantDetailScreen = ({ route }) => {
                     colors={['#795548', '#5D4037']}
                     style={styles.careIconContainer}
                   >
-                    <MaterialCommunityIcons name="fertilizer" size={28} color="#FFFFFF" />
+                    <MaterialCommunityIcons name="leaf-maple" size={28} color="#FFFFFF" />
                   </LinearGradient>
                   <Text style={styles.careCardTitle}>Soil</Text>
                   <Text style={styles.careCardText}>{careInfo.soil}</Text>
@@ -465,51 +465,81 @@ const PlantDetailScreen = ({ route }) => {
             </View>
           </View>
 
-          {/* Display watering info */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Watering Schedule</Text>
-            <BlurView intensity={30} tint="light" style={styles.waterScheduleContainer}>
-              <View style={styles.waterScheduleItem}>
-                <LinearGradient
-                  colors={['#4CAF50', '#2E7D32']}
-                  style={styles.waterIconContainer}
-                >
-                  <MaterialCommunityIcons name="calendar-check" size={24} color="#FFFFFF" />
-                </LinearGradient>
-                <View style={styles.waterScheduleTextContainer}>
-                  <Text style={styles.waterScheduleLabel}>Last Watered</Text>
-                  <Text style={styles.waterScheduleText}>{wateringInfo.lastWatered}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.scheduleDivider} />
-              
-              <View style={styles.waterScheduleItem}>
-                <LinearGradient
-                  colors={['#4CAF50', '#2E7D32']}
-                  style={styles.waterIconContainer}
-                >
-                  <MaterialCommunityIcons name="calendar-clock" size={24} color="#FFFFFF" />
-                </LinearGradient>
-                <View style={styles.waterScheduleTextContainer}>
-                  <Text style={styles.waterScheduleLabel}>Next Watering</Text>
-                  <Text style={styles.waterScheduleText}>{wateringInfo.nextWatering}</Text>
-                </View>
-              </View>
-            </BlurView>
-          </View>
-
-          {/* Display any additional plant data from the API */}
-          {plant.data && plant.data.length > 0 && (
+          {/* Display database information in an organized way */}
+          {plant && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Additional Information</Text>
+              <Text style={styles.sectionTitle}>Plant Details</Text>
               <BlurView intensity={30} tint="light" style={styles.additionalInfoContainer}>
-                {plant.data.map((item, index) => (
-                  <View key={index} style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>{item.key}</Text>
-                    <Text style={styles.infoText}>{item.value}</Text>
+                {plant.cycle && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Growth Cycle</Text>
+                    <Text style={styles.infoText}>{plant.cycle}</Text>
                   </View>
-                ))}
+                )}
+                
+                {plant.sunlight && Array.isArray(plant.sunlight) && plant.sunlight.length > 0 && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Sunlight</Text>
+                    <Text style={styles.infoText}>{plant.sunlight.join(', ')}</Text>
+                  </View>
+                )}
+                
+                {plant.watering && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Watering</Text>
+                    <Text style={styles.infoText}>{plant.watering}</Text>
+                  </View>
+                )}
+                
+                {plant.maintenance && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Maintenance</Text>
+                    <Text style={styles.infoText}>{plant.maintenance}</Text>
+                  </View>
+                )}
+                
+                {plant.propagation && Array.isArray(plant.propagation) && plant.propagation.length > 0 && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Propagation</Text>
+                    <Text style={styles.infoText}>{plant.propagation.join(', ')}</Text>
+                  </View>
+                )}
+                
+                {plant.category && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Category</Text>
+                    <Text style={styles.infoText}>
+                      {Array.isArray(plant.category) ? plant.category.join(', ') : plant.category}
+                    </Text>
+                  </View>
+                )}
+                
+                {plant.growth_rate && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Growth Rate</Text>
+                    <Text style={styles.infoText}>{plant.growth_rate}</Text>
+                  </View>
+                )}
+                
+                {/* Add care level, dimension, etc. as separate items */}
+                {plant.dimension && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Dimension</Text>
+                    <Text style={styles.infoText}>{plant.dimension}</Text>
+                  </View>
+                )}
+                
+                {/* Display any additional data not explicitly handled */}
+                {plant.data && Array.isArray(plant.data) && plant.data.length > 0 && (
+                  <>
+                    {plant.data.map((item, index) => (
+                      <View key={`data-${index}`} style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>{item.key}</Text>
+                        <Text style={styles.infoText}>{item.value}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
               </BlurView>
             </View>
           )}
