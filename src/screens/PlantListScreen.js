@@ -30,18 +30,8 @@ const PlantListScreen = ({ route }) => {
   const [lastId, setLastId] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   
-  // Search and filter state
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [filterCriteria, setFilterCriteria] = useState({
-    careLevel: [],
-    light: [],
-    cycle: [],
-    watering: [],
-    indoor: null,
-    edible: null,
-    petFriendly: null
-  });
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -70,10 +60,10 @@ const PlantListScreen = ({ route }) => {
     }
   }, []);  // Remove allPlants dependency to prevent unnecessary fetches
 
-  // Filter plants when category, plants data or search/filter criteria changes
+  // Filter plants when category, plants data or search criteria changes
   useEffect(() => {
     filterPlantsByCategory();
-  }, [category, plants, searchQuery, filterCriteria]);
+  }, [category, plants, searchQuery]);
 
   // Fetch plants from API
   const fetchPlants = async (forceRefresh = false) => {
@@ -174,15 +164,7 @@ const PlantListScreen = ({ route }) => {
     }
   };
 
-  // Load more plants when user reaches the end of the list
-  const handleLoadMore = () => {
-    if (!loading && hasMore && filteredPlants.length > 0) {
-      console.log('Reached end of list, loading more plants...');
-      fetchPlants();
-    }
-  };
-
-  // Apply filters based on category, search query and filter criteria
+  // Apply filters based on category and search query
   const filterPlantsByCategory = () => {
     if (plants.length === 0) return;
     
@@ -363,144 +345,6 @@ const PlantListScreen = ({ route }) => {
       });
     }
     
-    // Apply additional filter criteria - updated for Perenual API
-    if (Object.values(filterCriteria).some(value => 
-        (Array.isArray(value) && value.length > 0) || 
-        (value !== null && typeof value === 'boolean')
-    )) {
-      filtered = filtered.filter(plant => {
-        // Filter by care level / watering needs
-        if (filterCriteria.careLevel.length > 0) {
-          // Map care level to watering in Perenual API
-          const careLevel = plant.careLevel || (
-            plant.watering === 'Minimum' ? 'Easy' :
-            plant.watering === 'Average' ? 'Moderate' :
-            plant.watering === 'Frequent' ? 'Difficult' : null
-          );
-          
-          if (!careLevel || !filterCriteria.careLevel.includes(careLevel)) {
-            return false;
-          }
-        }
-        
-        // Filter by specific watering frequency
-        if (filterCriteria.watering.length > 0) {
-          if (!plant.watering || !filterCriteria.watering.includes(plant.watering)) {
-            return false;
-          }
-        }
-        
-        // Filter by light requirements
-        if (filterCriteria.light.length > 0) {
-          // Check if plant has sunlight data in Perenual format
-          if (plant.sunlight && Array.isArray(plant.sunlight)) {
-            const lightMatch = filterCriteria.light.some(lightPref => 
-              plant.sunlight.some(sunlight => 
-                sunlight.toLowerCase().includes(lightPref.toLowerCase())
-              )
-            );
-            if (!lightMatch) return false;
-          } 
-          // Fallback to old light property
-          else if (plant.light && typeof plant.light === 'string') {
-            const plantLight = plant.light.toLowerCase();
-            const lightMatch = filterCriteria.light.some(light => {
-              switch(light) {
-                case 'full_sun':
-                  return plantLight.includes('full') || plantLight.includes('direct');
-                case 'part_shade':
-                  return plantLight.includes('partial') || plantLight.includes('medium');
-                case 'shade':
-                  return plantLight.includes('low') || plantLight.includes('shade');
-                default:
-                  return false;
-              }
-            });
-            if (!lightMatch) return false;
-          } 
-          // No light data at all
-          else {
-            return false;
-          }
-        }
-        
-        // Filter by cycle type (Annual, Perennial, etc.)
-        if (filterCriteria.cycle.length > 0) {
-          if (!plant.cycle || !filterCriteria.cycle.includes(plant.cycle)) {
-            return false;
-          }
-        }
-        
-        // Filter by indoor suitability
-        if (filterCriteria.indoor !== null) {
-          // Check if plant is explicitly marked for indoor use
-          const isIndoor = plant.indoor === filterCriteria.indoor;
-          
-          // If we don't have explicit indoor data, make an educated guess
-          if (plant.indoor === undefined && plant.sunlight && Array.isArray(plant.sunlight)) {
-            const sunlightStr = plant.sunlight.join(' ').toLowerCase();
-            const requiresFullSun = sunlightStr.includes('full sun') && !sunlightStr.includes('part');
-            // If it requires full sun and filter is for indoor, exclude it
-            if (requiresFullSun && filterCriteria.indoor === true) return false;
-          }
-          
-          if (plant.indoor !== undefined && plant.indoor !== filterCriteria.indoor) return false;
-        }
-        
-        // Filter by edible property
-        if (filterCriteria.edible !== null) {
-          if (plant.edible === undefined) {
-            // If not defined, check if any data mentions edible
-            if (plant.data && Array.isArray(plant.data)) {
-              const edibleData = plant.data.some(item => 
-                (item.key === 'Edible parts' && item.value && item.value.length > 0)
-              );
-              if (filterCriteria.edible !== edibleData) return false;
-            } else if (filterCriteria.edible) {
-              // If we want edible plants but have no data, exclude
-              return false;
-            }
-          } else if (plant.edible !== filterCriteria.edible) {
-            return false;
-          }
-        }
-        
-        // Filter by pet friendly
-        if (filterCriteria.petFriendly !== null) {
-          // Check for poisonous property in Perenual API
-          if (plant.poisonous_to_pets !== undefined) {
-            // If poisonous is true, then plant is NOT pet friendly
-            const isPetFriendly = !plant.poisonous_to_pets;
-            if (filterCriteria.petFriendly !== isPetFriendly) return false;
-          } 
-          // Legacy data check 
-          else {
-            // Default to not pet friendly unless we have specific data
-            let isPetFriendly = false;
-            
-            // Check plant data
-            if (plant.data && Array.isArray(plant.data)) {
-              isPetFriendly = plant.data.some(item => 
-                (item.key === 'Toxicity' && item.value && item.value.toLowerCase().includes('non-toxic'))
-              );
-            }
-            
-            // Check for known pet-friendly plants
-            const petFriendlyPlants = ['Spider Plant', 'Boston Fern', 'Areca Palm', 'Calathea', 'Christmas Cactus'];
-            if (!isPetFriendly) {
-              isPetFriendly = petFriendlyPlants.some(name => 
-                plant.name?.includes(name) || plant.common_name?.includes(name)
-              );
-            }
-            
-            if (filterCriteria.petFriendly !== isPetFriendly) return false;
-          }
-        }
-        
-        return true;
-      });
-    }
-    
     // Remove duplicates by id
     const uniqueIds = new Set();
     filtered = filtered.filter(plant => {
@@ -515,409 +359,77 @@ const PlantListScreen = ({ route }) => {
     setFilteredPlants(filtered);
   };
 
-  // Function to count active filters
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filterCriteria.careLevel.length > 0) count++;
-    if (filterCriteria.light.length > 0) count++;
-    if (filterCriteria.watering.length > 0) count++;
-    if (filterCriteria.cycle.length > 0) count++;
-    if (filterCriteria.petFriendly !== null) count++;
-    return count;
-  };
-
-  // Apply the current filters
-  const applyFilters = () => {
-    setLoading(true);
-    // Reset pagination
-    setLastId(null);
-    setHasMore(true);
-    // Apply filters to the existing plants data
-    filterPlantsByCategory();
-    // Hide the filter modal
-    setIsFilterModalVisible(false);
-  };
-
-  // Render filter button with badge showing number of active filters
-  const renderFilterButton = () => {
-    const activeFilterCount = getActiveFilterCount();
-    
-    return (
-      <TouchableOpacity 
-        style={styles.filterButton}
-        onPress={() => setIsFilterModalVisible(true)}
-      >
-        <MaterialCommunityIcons name="filter-outline" size={22} color="#555" />
-        {activeFilterCount > 0 && (
-          <View style={styles.filterBadge}>
-            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  // Toggle filter selection
-  const toggleFilter = (type, value) => {
-    setFilterCriteria(prev => {
-      const newCriteria = { ...prev };
-      
-      if (type === 'petFriendly') {
-        // Toggle boolean value (or set to null)
-        newCriteria.petFriendly = newCriteria.petFriendly === value ? null : value;
-      } else {
-        // For array-based filters (careLevel, light, etc.)
-        if (newCriteria[type].includes(value)) {
-          // Remove the value if already selected
-          newCriteria[type] = newCriteria[type].filter(item => item !== value);
-        } else {
-          // Add the value if not already selected
-          newCriteria[type] = [...newCriteria[type], value];
-        }
-      }
-      
-      return newCriteria;
-    });
-  };
-
-  // Reset all filters
-  const resetFilters = () => {
-    setFilterCriteria({
-      careLevel: [],
-      light: [],
-      watering: [],
-      cycle: [],
-      petFriendly: null
-    });
-    setSearchQuery('');
-    setIsFilterModalVisible(false);
-  };
-
-  // Filter plants based on current criteria
-  const filterPlants = useCallback(() => {
-    if (!plants || plants.length === 0) {
-      setFilteredPlants([]);
-      setLoading(false);
-      return;
+  // Load more plants when user reaches the end of the list
+  const handleLoadMore = () => {
+    if (!loading && hasMore && filteredPlants.length > 0) {
+      console.log('Reached end of list, loading more plants...');
+      fetchPlants();
     }
+  };
 
-    let results = [...plants];
-
-    // Apply search query filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(
-        plant => 
-          plant.name?.toLowerCase().includes(query) || 
-          plant.species?.toLowerCase().includes(query)
+  // Render footer with loading indicator when loading more plants
+  const renderFooter = () => {
+    if (loading && hasMore) {
+      return (
+        <View style={styles.footerContainer}>
+          <ActivityIndicator size="small" color="#2E7D32" />
+          <Text style={styles.footerText}>Loading more plants...</Text>
+        </View>
+      );
+    } else if (!hasMore && filteredPlants.length > 0) {
+      // Show a message when we've reached the end
+      return (
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerText}>No more plants to load</Text>
+        </View>
+      );
+    } else if (filteredPlants.length === 0 && !loading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="sprout" size={50} color="#BDBDBD" />
+          <Text style={styles.emptyText}>
+            {searchQuery.trim() !== '' 
+              ? `No plants found for "${searchQuery}"`
+              : "No plants found for this category"}
+          </Text>
+          {searchQuery.trim() !== '' && (
+            <TouchableOpacity 
+              style={styles.clearSearchButton}
+              onPress={() => setSearchQuery('')}
+            >
+              <Text style={styles.clearSearchButtonText}>Clear Search</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       );
     }
-
-    // Apply care level filter
-    if (filterCriteria.careLevel.length > 0) {
-      results = results.filter(plant => {
-        // Map plant care difficulty to our filter options
-        const careLevelMap = {
-          'low': 'Very Easy',
-          'moderate': 'Easy',
-          'high': 'Moderate',
-          'unknown': 'Moderate'
-        };
-        const plantCareLevel = careLevelMap[plant.care_level?.toLowerCase()] || 'Moderate';
-        return filterCriteria.careLevel.includes(plantCareLevel);
-      });
-    }
-
-    // Apply light filter
-    if (filterCriteria.light.length > 0) {
-      results = results.filter(plant => {
-        if (!plant.sunlight || !Array.isArray(plant.sunlight)) return false;
-        // Check if any of the plant's sunlight needs match any of our selected light levels
-        return plant.sunlight.some(light => 
-          filterCriteria.light.includes(light.toLowerCase().replace(' ', '_'))
-        );
-      });
-    }
-
-    // Apply watering filter
-    if (filterCriteria.watering.length > 0) {
-      results = results.filter(plant => {
-        // Map plant watering to our filter options
-        const wateringMap = {
-          'frequent': 'Frequent',
-          'average': 'Average',
-          'minimum': 'Minimum',
-          'none': 'Minimum'
-        };
-        const plantWatering = wateringMap[plant.watering?.toLowerCase()] || 'Average';
-        return filterCriteria.watering.includes(plantWatering);
-      });
-    }
-
-    // Apply cycle filter
-    if (filterCriteria.cycle.length > 0) {
-      results = results.filter(plant => {
-        if (!plant.cycle) return false;
-        return filterCriteria.cycle.includes(plant.cycle);
-      });
-    }
-
-    // Apply pet friendly filter
-    if (filterCriteria.petFriendly !== null) {
-      results = results.filter(plant => {
-        if (filterCriteria.petFriendly === true) {
-          return plant.poisonous_to_pets === 0 || plant.poisonous_to_pets === false;
-        } else {
-          return plant.poisonous_to_pets === 1 || plant.poisonous_to_pets === true;
-        }
-      });
-    }
-
-    setFilteredPlants(results);
-    setLoading(false);
-  }, [plants, searchQuery, filterCriteria, userPlants]);
-
-  // Handle toggle favorite
-  const handleToggleFavorite = (plantId) => {
-    // Convert plantId to string for consistency
-    const plantIdStr = String(plantId);
     
-    dispatch(toggleFavorite(plantIdStr))
-      .then(() => {
-        // Check if the plant is actually in userPlants after the action
-        const isFavorited = userPlants.some(p => String(p.id) === plantIdStr && p.isFavorite);
-        if (isFavorited) {
-          // Show a message or toast indicating added to favorites
-          console.log('Plant added to favorites!');
-        } else {
-          console.log('Plant removed from favorites!');
-        }
-      })
-      .catch(error => {
-        console.error('Error toggling favorite:', error);
-      });
+    return null;
   };
 
-  // Updated and more attractive filter modal
-  const renderFilterModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isFilterModalVisible}
-      onRequestClose={() => setIsFilterModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter Plants</Text>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setIsFilterModalVisible(false)}
-            >
-              <MaterialCommunityIcons name="close" size={24} color="#555" />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles.modalScrollContent}>
-            {/* Care Level Filter */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Care Level</Text>
-              <View style={styles.filterOptions}>
-                {[
-                  { id: 'Very Easy', icon: 'leaf-circle-outline' },
-                  { id: 'Easy', icon: 'leaf-circle' },
-                  { id: 'Moderate', icon: 'flower-outline' },
-                  { id: 'Difficult', icon: 'flower-tulip' }
-                ].map(level => (
-                  <TouchableOpacity
-                    key={level.id}
-                    style={[
-                      styles.filterOption,
-                      filterCriteria.careLevel.includes(level.id) && styles.filterOptionSelected
-                    ]}
-                    onPress={() => toggleFilter('careLevel', level.id)}
-                  >
-                    <Text 
-                      style={[
-                        styles.filterOptionText,
-                        filterCriteria.careLevel.includes(level.id) && styles.filterOptionTextSelected
-                      ]}
-                    >
-                      {level.id}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
-            {/* Light Requirements Filter */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Light Requirements</Text>
-              <View style={styles.filterOptions}>
-                {[
-                  { key: 'full_sun', label: 'Full Sun' },
-                  { key: 'part_shade', label: 'Part Shade' },
-                  { key: 'shade', label: 'Shade' }
-                ].map(item => (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[
-                      styles.filterOption,
-                      filterCriteria.light.includes(item.key) && styles.filterOptionSelected
-                    ]}
-                    onPress={() => toggleFilter('light', item.key)}
-                  >
-                    <Text 
-                      style={[
-                        styles.filterOptionText,
-                        filterCriteria.light.includes(item.key) && styles.filterOptionTextSelected
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
-            {/* Cycle Type Filter */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Cycle Type</Text>
-              <View style={styles.filterOptions}>
-                {[
-                  { id: 'Perennial' },
-                  { id: 'Annual' },
-                  { id: 'Biennial' },
-                  { id: 'Biannual' }
-                ].map(cycle => (
-                  <TouchableOpacity
-                    key={cycle.id}
-                    style={[
-                      styles.filterOption,
-                      filterCriteria.cycle.includes(cycle.id) && styles.filterOptionSelected
-                    ]}
-                    onPress={() => toggleFilter('cycle', cycle.id)}
-                  >
-                    <Text 
-                      style={[
-                        styles.filterOptionText,
-                        filterCriteria.cycle.includes(cycle.id) && styles.filterOptionTextSelected
-                      ]}
-                    >
-                      {cycle.id}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
-            {/* Watering Frequency Filter */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Watering Frequency</Text>
-              <View style={styles.filterOptions}>
-                {[
-                  { id: 'Frequent', label: 'Frequent' },
-                  { id: 'Average', label: 'Average' },
-                  { id: 'Minimum', label: 'Minimum' }
-                ].map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.filterOption,
-                      filterCriteria.watering.includes(item.id) && styles.filterOptionSelected
-                    ]}
-                    onPress={() => toggleFilter('watering', item.id)}
-                  >
-                    <Text 
-                      style={[
-                        styles.filterOptionText,
-                        filterCriteria.watering.includes(item.id) && styles.filterOptionTextSelected
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
-            {/* Pet Friendly Filter */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Pet Friendly</Text>
-              <View style={styles.filterOptions}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterOption,
-                    filterCriteria.petFriendly === true && styles.filterOptionSelected
-                  ]}
-                  onPress={() => toggleFilter('petFriendly', true)}
-                >
-                  <Text 
-                    style={[
-                      styles.filterOptionText,
-                      filterCriteria.petFriendly === true && styles.filterOptionTextSelected
-                    ]}
-                  >
-                    Yes
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterOption,
-                    filterCriteria.petFriendly === false && styles.filterOptionSelected
-                  ]}
-                  onPress={() => toggleFilter('petFriendly', false)}
-                >
-                  <Text 
-                    style={[
-                      styles.filterOptionText,
-                      filterCriteria.petFriendly === false && styles.filterOptionTextSelected
-                    ]}
-                  >
-                    No
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterOption,
-                    filterCriteria.petFriendly === null && styles.filterOptionSelected
-                  ]}
-                  onPress={() => toggleFilter('petFriendly', null)}
-                >
-                  <Text 
-                    style={[
-                      styles.filterOptionText,
-                      filterCriteria.petFriendly === null && styles.filterOptionTextSelected
-                    ]}
-                  >
-                    All
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
-          
-          <View style={styles.filterActions}>
-            <TouchableOpacity 
-              style={styles.resetButton}
-              onPress={resetFilters}
-            >
-              <Text style={styles.resetButtonText}>Reset Filters</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.applyButton}
-              onPress={() => {
-                applyFilters();
-                setIsFilterModalVisible(false);
-              }}
-            >
-              <Text style={styles.applyButtonText}>Apply</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
+  // Fetch plants with error handling
+  const safeFetchPlants = async (forceRefresh = false) => {
+    try {
+      await fetchPlants(forceRefresh);
+    } catch (err) {
+      console.error('Error in safeFetchPlants:', err);
+      setError('Failed to load plants. Please try again later.');
+      // Set an empty array to prevent the app from crashing
+      if (forceRefresh) {
+        setPlants([]);
+      }
+      setLoading(false);
+    }
+  };
+
+  // Handle toggling favorite status
+  const handleToggleFavorite = (plantId) => {
+    try {
+      dispatch(toggleFavorite(plantId));
+    } catch (error) {
+      console.error('Error toggling favorite status:', error);
+    }
+  };
 
   // Quick View Modal Component
   const QuickViewModal = ({ plant, visible, onClose }) => {
@@ -1329,61 +841,6 @@ const PlantListScreen = ({ route }) => {
     );
   };
 
-  // Render footer with loading indicator when loading more plants
-  const renderFooter = () => {
-    if (loading && hasMore) {
-      return (
-        <View style={styles.footerContainer}>
-          <ActivityIndicator size="small" color="#2E7D32" />
-          <Text style={styles.footerText}>Loading more plants...</Text>
-        </View>
-      );
-    } else if (!hasMore && filteredPlants.length > 0) {
-      // Show a message when we've reached the end
-      return (
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>No more plants to load</Text>
-        </View>
-      );
-    } else if (filteredPlants.length === 0 && !loading) {
-      return (
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="sprout" size={50} color="#BDBDBD" />
-          <Text style={styles.emptyText}>
-            {searchQuery.trim() !== '' 
-              ? `No plants found for "${searchQuery}"`
-              : "No plants found for this category"}
-          </Text>
-          {searchQuery.trim() !== '' && (
-            <TouchableOpacity 
-              style={styles.clearSearchButton}
-              onPress={() => setSearchQuery('')}
-            >
-              <Text style={styles.clearSearchButtonText}>Clear Search</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    }
-    
-    return null;
-  };
-
-  // Fetch plants with error handling
-  const safeFetchPlants = async (forceRefresh = false) => {
-    try {
-      await fetchPlants(forceRefresh);
-    } catch (err) {
-      console.error('Error in safeFetchPlants:', err);
-      setError('Failed to load plants. Please try again later.');
-      // Set an empty array to prevent the app from crashing
-      if (forceRefresh) {
-        setPlants([]);
-      }
-      setLoading(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -1397,18 +854,15 @@ const PlantListScreen = ({ route }) => {
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.searchFilterContainer}>
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search plants..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#999"
-          />
-        </View>
-        {renderFilterButton()}
+      <View style={styles.searchContainer}>
+        <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search plants..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
+        />
       </View>
 
       {error && (
@@ -1465,8 +919,6 @@ const PlantListScreen = ({ route }) => {
         }
       />
 
-      {renderFilterModal()}
-
       <QuickViewModal
         plant={selectedPlant}
         visible={isQuickViewVisible}
@@ -1505,20 +957,13 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  searchFilterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     borderRadius: 20,
     padding: 12,
     paddingHorizontal: 16,
-    marginRight: 10,
+    marginHorizontal: 16,
+    marginBottom: 16,
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
   },
@@ -1602,6 +1047,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginHorizontal: -4,
   },
+  filterOptionsSimple: {
+    marginTop: 8,
+  },
   filterOption: {
     backgroundColor: '#f0f0f0',
     paddingVertical: 8,
@@ -1610,12 +1058,26 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
+  filterOptionSimple: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
   filterOptionSelected: {
     backgroundColor: '#2E7D32',
   },
   filterOptionText: {
     fontSize: 14,
     color: '#333',
+  },
+  filterOptionTextSimple: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
   },
   filterOptionTextSelected: {
     color: 'white',

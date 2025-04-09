@@ -117,20 +117,115 @@ const PlantDetailScreen = ({ route }) => {
     
     // Try to get values from plant.data if available
     const getValueOrDefault = (key, defaultValue) => {
-      if (!plant.data || !Array.isArray(plant.data)) return defaultValue;
+      // First check for direct properties on the plant object
+      if (plant[key.toLowerCase()]) {
+        return plant[key.toLowerCase()];
+      }
       
-      const item = plant.data.find(item => item.key === key);
-      return item ? item.value : defaultValue;
+      // Check standard Perenual API fields
+      if (key === 'Water requirement' && plant.watering) {
+        return plant.watering;
+      }
+      
+      if (key === 'Light requirement' && plant.sunlight && Array.isArray(plant.sunlight)) {
+        return plant.sunlight.join(', ');
+      }
+      
+      // Then look in plant.data array
+      if (plant.data && Array.isArray(plant.data)) {
+        // Try exact match first
+        const exactMatch = plant.data.find(item => 
+          item.key && item.key.toLowerCase() === key.toLowerCase()
+        );
+        
+        if (exactMatch && exactMatch.value) {
+          return exactMatch.value;
+        }
+        
+        // Try partial match if exact match fails
+        const partialMatch = plant.data.find(item => 
+          item.key && item.key.toLowerCase().includes(key.toLowerCase().split(' ')[0])
+        );
+        
+        if (partialMatch && partialMatch.value) {
+          return partialMatch.value;
+        }
+      }
+      
+      return defaultValue;
+    };
+    
+    // Interpret watering needs
+    const getWaterRequirement = () => {
+      if (plant.watering) {
+        switch(plant.watering.toLowerCase()) {
+          case 'frequent':
+            return 'Keep soil consistently moist';
+          case 'average':
+            return 'Water when top inch of soil is dry';
+          case 'minimum':
+            return 'Allow soil to dry between waterings';
+          default:
+            return plant.watering;
+        }
+      }
+      
+      if (plant.water) {
+        return plant.water;
+      }
+      
+      return getValueOrDefault('Water requirement', 'Check soil moisture before watering');
+    };
+    
+    // Interpret light requirements
+    const getLightRequirement = () => {
+      if (plant.sunlight && Array.isArray(plant.sunlight) && plant.sunlight.length > 0) {
+        return plant.sunlight.join(', ');
+      }
+      
+      if (typeof plant.light === 'string') {
+        return plant.light;
+      }
+      
+      return getValueOrDefault('Light requirement', 'Medium to bright indirect light');
+    };
+    
+    // Get USDA zone or temperature range
+    const getTemperature = () => {
+      if (plant.hardiness) {
+        return `USDA Zone ${plant.hardiness}`;
+      }
+      
+      const zoneValue = getValueOrDefault('USDA Hardiness zone', null);
+      if (zoneValue) return zoneValue;
+      
+      const tempValue = getValueOrDefault('Temperature', null);
+      if (tempValue) return tempValue;
+      
+      // Default temperature based on plant type
+      if (plant.name && (
+          plant.name.toLowerCase().includes('tropical') || 
+          plant.name.toLowerCase().includes('palm')
+      )) {
+        return '65-85°F (18-29°C)';
+      } else if (plant.name && (
+          plant.name.toLowerCase().includes('succulent') || 
+          plant.name.toLowerCase().includes('cactus')
+      )) {
+        return '60-90°F (15-32°C)';
+      }
+      
+      return '65-75°F (18-24°C)';
     };
     
     return {
-      water: plant.water || getValueOrDefault('Water requirement', 'Medium - Check plant needs'),
-      light: plant.light || getValueOrDefault('Light requirement', 'Medium light'),
-      temperature: getValueOrDefault('USDA Hardiness zone', '65-85°F (18-29°C)'),
-      humidity: getValueOrDefault('Humidity', 'Medium'),
+      water: getWaterRequirement(),
+      light: getLightRequirement(),
+      temperature: getTemperature(),
+      humidity: getValueOrDefault('Humidity', 'Average household humidity'),
       soil: getValueOrDefault('Soil type', 'Well-draining potting mix'),
-      fertilizer: getValueOrDefault('Fertilizer', 'As needed during growing season'),
-      repotting: getValueOrDefault('Repotting', 'Every 1-2 years or as needed'),
+      fertilizer: getValueOrDefault('Fertilizer', 'Balanced fertilizer during growing season'),
+      repotting: getValueOrDefault('Repotting', 'Every 1-2 years or when roots outgrow pot'),
     };
   };
 
@@ -204,6 +299,133 @@ const PlantDetailScreen = ({ route }) => {
     }
     
     return "No description available for this plant. Please check care instructions below for growing requirements.";
+  };
+
+  // Format growing tips for display
+  const getGrowingTips = () => {
+    if (!plant || !plant.growing_tips) return null;
+
+    try {
+      // Try to parse growing_tips if it's a JSON string
+      const tips = typeof plant.growing_tips === 'string' 
+        ? JSON.parse(plant.growing_tips) 
+        : plant.growing_tips;
+
+      // Helper function to check if a value is empty
+      const isEmpty = (value) => {
+        if (!value) return true;
+        if (typeof value === 'string') return value.trim() === '';
+        if (Array.isArray(value)) return value.length === 0;
+        if (typeof value === 'object') return Object.keys(value).length === 0;
+        return false;
+      };
+
+      // If tips is an array, filter out empty values and map to objects
+      if (Array.isArray(tips)) {
+        const filteredTips = tips
+          .filter(tip => !isEmpty(tip))
+          .map(tip => ({
+            content: typeof tip === 'string' ? tip.trim() : tip,
+            type: 'general'
+          }));
+        return filteredTips.length > 0 ? filteredTips : null;
+      }
+
+      // If tips is an object, filter out empty values and convert to array with type information
+      if (typeof tips === 'object') {
+        const filteredTips = Object.entries(tips)
+          .filter(([key, value]) => !isEmpty(key) && !isEmpty(value))
+          .map(([key, value]) => {
+            let type = 'general';
+            const lowerKey = key.toLowerCase();
+            
+            // Determine tip type based on key
+            if (lowerKey.includes('water') || lowerKey.includes('irrigation')) {
+              type = 'water';
+            } else if (lowerKey.includes('light') || lowerKey.includes('sun')) {
+              type = 'light';
+            } else if (lowerKey.includes('soil') || lowerKey.includes('potting')) {
+              type = 'soil';
+            } else if (lowerKey.includes('temperature') || lowerKey.includes('climate')) {
+              type = 'temperature';
+            } else if (lowerKey.includes('fertilizer') || lowerKey.includes('feed')) {
+              type = 'fertilizer';
+            } else if (lowerKey.includes('prune') || lowerKey.includes('trim')) {
+              type = 'prune';
+            } else if (lowerKey.includes('propagate') || lowerKey.includes('grow')) {
+              type = 'propagate';
+            }
+
+            return {
+              title: key.trim(),
+              content: typeof value === 'string' ? value.trim() : value,
+              type
+            };
+          });
+        return filteredTips.length > 0 ? filteredTips : null;
+      }
+
+      // If tips is a string, split it into an array and filter out empty values
+      if (typeof tips === 'string') {
+        const filteredTips = tips.split('\n')
+          .map(tip => tip.trim())
+          .filter(tip => !isEmpty(tip))
+          .map(tip => ({
+            content: tip,
+            type: 'general'
+          }));
+        return filteredTips.length > 0 ? filteredTips : null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error parsing growing tips:', error);
+      return null;
+    }
+  };
+
+  // Get icon based on tip type
+  const getTipIcon = (type) => {
+    switch (type) {
+      case 'water':
+        return 'water-outline';
+      case 'light':
+        return 'white-balance-sunny';
+      case 'soil':
+        return 'leaf-maple';
+      case 'temperature':
+        return 'thermometer';
+      case 'fertilizer':
+        return 'leaf-circle';
+      case 'prune':
+        return 'scissors-cutting';
+      case 'propagate':
+        return 'sprout';
+      default:
+        return 'lightbulb-on-outline';
+    }
+  };
+
+  // Get gradient colors based on tip type
+  const getTipGradient = (type) => {
+    switch (type) {
+      case 'water':
+        return ['#2196F3', '#1976D2'];
+      case 'light':
+        return ['#FFC107', '#FFA000'];
+      case 'soil':
+        return ['#795548', '#5D4037'];
+      case 'temperature':
+        return ['#F44336', '#D32F2F'];
+      case 'fertilizer':
+        return ['#4CAF50', '#2E7D32'];
+      case 'prune':
+        return ['#9C27B0', '#7B1FA2'];
+      case 'propagate':
+        return ['#00BCD4', '#0097A7'];
+      default:
+        return ['#607D8B', '#455A64'];
+    }
   };
 
   // Render loading state
@@ -543,6 +765,42 @@ const PlantDetailScreen = ({ route }) => {
               </BlurView>
             </View>
           )}
+
+          {/* Growing Tips Section */}
+          {(() => {
+            const tips = getGrowingTips();
+            return tips && tips.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Growing Tips</Text>
+                <View style={styles.growingTipsContainer}>
+                  {tips.map((tip, index) => (
+                    <View key={index} style={styles.growingTipCard}>
+                      <LinearGradient
+                        colors={getTipGradient(tip.type)}
+                        style={styles.growingTipIconContainer}
+                      >
+                        <MaterialCommunityIcons 
+                          name={getTipIcon(tip.type)} 
+                          size={24} 
+                          color="#FFFFFF" 
+                        />
+                      </LinearGradient>
+                      <View style={styles.growingTipContent}>
+                        {tip.title ? (
+                          <>
+                            <Text style={styles.growingTipTitle}>{tip.title}</Text>
+                            <Text style={styles.growingTipText}>{tip.content}</Text>
+                          </>
+                        ) : (
+                          <Text style={styles.growingTipText}>{tip.content}</Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null;
+          })()}
 
           <View style={styles.buttonContainer}>
             <View style={styles.buttonsRow}>
@@ -944,6 +1202,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#BDBDBD',
     borderWidth: 1,
     borderColor: '#9E9E9E',
+  },
+  growingTipsContainer: {
+    marginTop: 8,
+  },
+  growingTipCard: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  growingTipIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  growingTipContent: {
+    flex: 1,
+  },
+  growingTipTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 4,
+  },
+  growingTipText: {
+    fontSize: 14,
+    color: '#616161',
+    lineHeight: 20,
   },
 });
 

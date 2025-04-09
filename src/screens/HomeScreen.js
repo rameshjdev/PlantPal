@@ -210,7 +210,6 @@ const CategoryCard = ({ category }) => {
       '#03A9F4', '#E91E63', '#009688', '#673AB7'
     ];
     
-    // Simple hash function to get consistent index
     const hash = categoryName.split('').reduce(
       (acc, char) => acc + char.charCodeAt(0), 0
     );
@@ -219,7 +218,7 @@ const CategoryCard = ({ category }) => {
   };
   
   const categoryColor = getCategoryColor(category.normalized);
-
+  
   return (
     <TouchableOpacity
       style={styles.categoryCard}
@@ -229,28 +228,31 @@ const CategoryCard = ({ category }) => {
         showAllPlants: true
       })}
     >
-      <View style={[styles.categoryCircle, { borderColor: categoryColor }]}>
+      <View style={[styles.categoryImageContainer, { backgroundColor: `${categoryColor}15` }]}>
         {category.image ? (
           <Image
             source={{ uri: category.image }}
             style={styles.categoryImage}
           />
         ) : (
-          <View style={[styles.categoryImage, { backgroundColor: `${categoryColor}15` }]}>
+          <View style={styles.categoryIconContainer}>
             <Ionicons name="leaf" size={32} color={categoryColor} />
           </View>
         )}
         <LinearGradient
-          colors={['transparent', `${categoryColor}80`]}
+          colors={['transparent', `${categoryColor}20`]}
           style={styles.categoryGradient}
         />
       </View>
-      <View style={styles.categoryTextContainer}>
+      
+      <View style={styles.categoryInfo}>
         <Text style={styles.categoryName} numberOfLines={1}>
           {category.name}
         </Text>
-        <View style={[styles.categoryCountContainer, { backgroundColor: categoryColor }]}>
-          <Text style={styles.categoryCount}>{category.count}</Text>
+        <View style={[styles.categoryCountContainer, { backgroundColor: `${categoryColor}20` }]}>
+          <Text style={[styles.categoryCount, { color: categoryColor }]}>
+            {category.count} plants
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -1170,37 +1172,56 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-    paddingTop: 8
+    paddingTop: 8,
   },
   categoryCard: {
-    width: 110,
-    alignItems: 'center',
+    width: 140,
     marginRight: 16,
-  },
-  categoryCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#fff',
-    borderWidth: 2,
+    backgroundColor: 'white',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
-        elevation: 6,
+        elevation: 4,
       },
     }),
+  },
+  categoryImageContainer: {
+    width: '100%',
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   categoryImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
+  },
+  categoryIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   categoryGradient: {
     position: 'absolute',
@@ -1209,28 +1230,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: '50%',
   },
-  categoryTextContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 8,
+  categoryInfo: {
+    padding: 12,
+    backgroundColor: 'white',
   },
   categoryName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-    textAlign: 'center',
+    color: '#1A1A1A',
+    marginBottom: 8,
   },
   categoryCountContainer: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 12,
-    alignItems: 'center',
+    alignSelf: 'flex-start',
   },
   categoryCount: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: '500',
   },
 });
 

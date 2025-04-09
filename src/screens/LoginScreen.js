@@ -158,7 +158,7 @@ const LoginScreen = () => {
             ]}
           >
             <Image 
-              source={require('../../assets/icon.png')} 
+              source={require('../../assets/logo.png')} 
               style={styles.logo} 
               resizeMode="contain"
             />

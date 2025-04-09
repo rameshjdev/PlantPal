@@ -7,7 +7,9 @@ import {
   TouchableOpacity, 
   Image, 
   StatusBar,
-  Switch 
+  Switch,
+  Modal,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,10 +21,12 @@ const AllAlertsScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const [filter, setFilter] = useState('all'); // 'all', 'today', 'upcoming', 'completed'
+  const [showNoPlantsModal, setShowNoPlantsModal] = useState(false);
   
   // Get all reminders and loading state
   const reminders = useSelector(state => state.reminders.reminders);
   const status = useSelector(state => state.reminders.status);
+  const userPlants = useSelector(state => state.plants.userPlants);
   
   // Fetch reminders on component mount
   useEffect(() => {
@@ -62,6 +66,14 @@ const AllAlertsScreen = () => {
       reminderId,
       completionDate: today
     }));
+  };
+
+  const handleAddReminder = () => {
+    if (userPlants.length === 0) {
+      setShowNoPlantsModal(true);
+      return;
+    }
+    navigation.navigate('SetReminder');
   };
 
   const renderReminderItem = ({ item }) => {
@@ -204,7 +216,7 @@ const AllAlertsScreen = () => {
           </Text>
           <TouchableOpacity 
             style={styles.createButton}
-            onPress={() => navigation.navigate('SetReminder')}
+            onPress={handleAddReminder}
           >
             <Text style={styles.createButtonText}>Create Alert</Text>
           </TouchableOpacity>
@@ -222,6 +234,44 @@ const AllAlertsScreen = () => {
     );
   };
 
+  const NoPlantsModal = () => (
+    <Modal
+      visible={showNoPlantsModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowNoPlantsModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalIconContainer}>
+            <Ionicons name="leaf-outline" size={48} color="#4CAF50" />
+          </View>
+          <Text style={styles.modalTitle}>No Plants in Collection</Text>
+          <Text style={styles.modalMessage}>
+            You need to add plants to your collection before setting up reminders. Would you like to add some plants now?
+          </Text>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowNoPlantsModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={() => {
+                setShowNoPlantsModal(false);
+                navigation.navigate('PlantList', { category: 'All Plants', usePopularPlants: true });
+              }}
+            >
+              <Text style={styles.confirmButtonText}>Add Plants</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -235,7 +285,7 @@ const AllAlertsScreen = () => {
         <Text style={styles.title}>All Alerts</Text>
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => navigation.navigate('SetReminder')}
+          onPress={handleAddReminder}
         >
           <Ionicons name="add" size={24} color="#000" />
         </TouchableOpacity>
@@ -243,6 +293,7 @@ const AllAlertsScreen = () => {
 
       {renderFilterButtons()}
       {renderContent()}
+      <NoPlantsModal />
     </SafeAreaView>
   );
 };
@@ -393,6 +444,80 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#F5F5F5',
+  },
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+  },
+  cancelButtonText: {
+    color: '#666666',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 
