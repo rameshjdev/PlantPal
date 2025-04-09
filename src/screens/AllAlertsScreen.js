@@ -81,16 +81,25 @@ const AllAlertsScreen = () => {
     const isToday = item.nextDue === today;
     const isPast = item.nextDue < today;
     
-    let imageUrl;
-    if (item.type === 'watering') {
-      imageUrl = 'https://images.unsplash.com/photo-1604762524889-3e2fcc145683?w=200';
-    } else if (item.type === 'fertilizing') {
-      imageUrl = 'https://images.unsplash.com/photo-1611438213165-e9d6606e59a1?w=200';
-    } else if (item.type === 'pruning') {
-      imageUrl = 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=200';
-    } else {
-      imageUrl = 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=200';
-    }
+    // Get the associated plant
+    const plant = userPlants.find(p => p.id === item.plantId);
+    
+    const getPlantImage = () => {
+      if (!plant) return null;
+      
+      if (plant.default_image && plant.default_image.medium_url) {
+        return { uri: plant.default_image.medium_url };
+      }
+      
+      if (typeof plant.image === 'number') return plant.image;
+      if (plant.image && plant.image.uri) return { uri: plant.image.uri };
+      if (typeof plant.image === 'string') return { uri: plant.image };
+      
+      return null;
+    };
+    
+    const plantImage = getPlantImage();
+    const hasImage = !!plantImage;
     
     return (
       <TouchableOpacity 
@@ -100,7 +109,19 @@ const AllAlertsScreen = () => {
         ]}
         onPress={() => navigation.navigate('ReminderDetail', { reminderId: item.id })}
       >
-        <Image source={{ uri: imageUrl }} style={styles.reminderImage} />
+        {hasImage ? (
+          <Image 
+            source={plantImage} 
+            style={styles.reminderImage} 
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.reminderImage, styles.reminderPlaceholder]}>
+            <Text style={styles.reminderPlaceholderText}>
+              {item.plantName ? item.plantName.charAt(0) : (plant ? plant.name.charAt(0) : "P")}
+            </Text>
+          </View>
+        )}
         <View style={styles.reminderInfo}>
           <Text style={styles.reminderTitle}>
             {item.type === 'watering' 
@@ -381,6 +402,16 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 8,
     marginRight: 16,
+  },
+  reminderPlaceholder: {
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reminderPlaceholderText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   reminderInfo: {
     flex: 1,

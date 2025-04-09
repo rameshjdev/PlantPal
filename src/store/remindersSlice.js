@@ -1,59 +1,38 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { loadReminders, saveReminders } from './persistence';
 
-// Async thunk for fetching reminders (simulated API call)
+// Async thunk for fetching reminders
 export const fetchReminders = createAsyncThunk(
   'reminders/fetchReminders',
-  async (_, { getState }) => {
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Return the current reminders from the state
-        const state = getState();
-        resolve(state.reminders.reminders);
-      }, 500);
-    });
+  async () => {
+    const savedReminders = await loadReminders();
+    return savedReminders;
   }
 );
 
-// Async thunk for adding a reminder (simulated API call)
+// Async thunk for adding a reminder
 export const addReminder = createAsyncThunk(
   'reminders/addReminder',
   async (reminder) => {
     console.log('Adding reminder:', reminder);
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Use the provided ID instead of generating a new one
-        resolve(reminder);
-      }, 500);
-    });
+    return reminder;
   }
 );
 
-// Async thunk for updating a reminder (simulated API call)
+// Async thunk for updating a reminder
 export const updateReminder = createAsyncThunk(
   'reminders/updateReminder',
   async (reminder) => {
     console.log('Updating reminder:', reminder);
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(reminder);
-      }, 500);
-    });
+    return reminder;
   }
 );
 
-// Async thunk for deleting a reminder (simulated API call)
+// Async thunk for deleting a reminder
 export const deleteReminder = createAsyncThunk(
   'reminders/deleteReminder',
   async (reminderId) => {
-    // In a real app, this would be an API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(reminderId);
-      }, 500);
-    });
+    return reminderId;
   }
 );
 
@@ -70,6 +49,7 @@ const remindersSlice = createSlice({
       const reminder = state.reminders.find(r => r.id === reminderId);
       if (reminder) {
         reminder.enabled = !reminder.enabled;
+        saveReminders(state.reminders);
       }
     },
     markReminderCompleted: (state, action) => {
@@ -113,6 +93,7 @@ const remindersSlice = createSlice({
         }
         
         reminder.nextDue = nextDate.toISOString().split('T')[0];
+        saveReminders(state.reminders);
       }
     },
   },
@@ -131,15 +112,18 @@ const remindersSlice = createSlice({
       })
       .addCase(addReminder.fulfilled, (state, action) => {
         state.reminders.push(action.payload);
+        saveReminders(state.reminders);
       })
       .addCase(updateReminder.fulfilled, (state, action) => {
         const index = state.reminders.findIndex(r => r.id === action.payload.id);
         if (index !== -1) {
           state.reminders[index] = action.payload;
+          saveReminders(state.reminders);
         }
       })
       .addCase(deleteReminder.fulfilled, (state, action) => {
         state.reminders = state.reminders.filter(r => r.id !== action.payload);
+        saveReminders(state.reminders);
       });
   },
 });

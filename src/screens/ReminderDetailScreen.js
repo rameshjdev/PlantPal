@@ -66,18 +66,6 @@ const ReminderDetailScreen = () => {
     );
   }
   
-  // Get appropriate image based on reminder type
-  let imageUrl;
-  if (reminder.type === 'watering') {
-    imageUrl = 'https://images.unsplash.com/photo-1604762524889-3e2fcc145683?w=200';
-  } else if (reminder.type === 'fertilizing') {
-    imageUrl = 'https://images.unsplash.com/photo-1611438213165-e9d6606e59a1?w=200';
-  } else if (reminder.type === 'pruning') {
-    imageUrl = 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=200';
-  } else {
-    imageUrl = 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=200';
-  }
-  
   const handleToggleEnabled = () => {
     dispatch(toggleReminderEnabled(reminder.id));
   };
@@ -140,7 +128,7 @@ const ReminderDetailScreen = () => {
         {/* Banner with plant image */}
         <View style={styles.banner}>
           <Image 
-            source={{ uri: imageUrl }} 
+            source={{ uri: plant?.image || 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=200' }} 
             style={styles.bannerImage} 
           />
           <View style={styles.bannerOverlay} />
@@ -237,6 +225,16 @@ const ReminderDetailScreen = () => {
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Last Completed</Text>
                 <Text style={styles.infoValue}>{reminder.lastCompleted}</Text>
+              </View>
+            </View>
+          )}
+          
+          {reminder.notes && (
+            <View style={styles.infoItem}>
+              <Ionicons name="document-text-outline" size={24} color="#4CAF50" />
+              <View style={styles.infoTextContainer}>
+                <Text style={styles.infoLabel}>Notes</Text>
+                <Text style={styles.infoValue}>{reminder.notes}</Text>
               </View>
             </View>
           )}
@@ -357,7 +355,7 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: '100%',
-    height: '100%',
+    height: 220,
     resizeMode: 'cover',
   },
   bannerOverlay: {
@@ -451,9 +449,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   plantImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
     marginRight: 16,
   },
   plantInfo: {
