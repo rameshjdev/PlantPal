@@ -22,10 +22,10 @@ import CollectionView from '../screens/CollectionView';
 
 // Import new screens
 import AllPopularPlantsScreen from '../screens/AllPopularPlantsScreen';
-import ScanPlantScreen from '../screens/ScanPlantScreen';
 import SearchScreen from '../screens/SearchScreen';
 import AllAlertsScreen from '../screens/AllAlertsScreen';
 import ReminderDetailScreen from '../screens/ReminderDetailScreen';
+import PlantIdentificationScreen from '../screens/PlantIdentificationScreen';
 
 // Create navigators
 const Stack = createNativeStackNavigator();
@@ -68,7 +68,6 @@ const HomeStack = () => {
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
       <Stack.Screen name="SetReminder" component={SetReminderScreen} />
       <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
-      <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
       <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
@@ -90,7 +89,6 @@ const DiscoverStack = () => {
       />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
       <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
-      <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
@@ -119,43 +117,44 @@ const ProfileStack = () => {
   );
 };
 
+// Create Scan stack navigator
+const ScanStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="PlantIdentification" component={PlantIdentificationScreen} />
+    </Stack.Navigator>
+  );
+};
+
 // Bottom tab bar icon component
 const TabBarIcon = ({ route, focused }) => {
   let iconName;
-  let label;
-  
-  if (route.name === 'HomeTab') {
-    iconName = focused ? 'home' : 'home-outline';
-    label = 'Home';
-  } else if (route.name === 'ExploreTab') {
-    iconName = focused ? 'leaf' : 'leaf-outline';
-    label = 'Explore';
-  } else if (route.name === 'SavedTab') {
-    iconName = focused ? 'heart' : 'heart-outline';
-    label = 'Saved';
-  } else if (route.name === 'ProfileTab') {
-    iconName = focused ? 'person' : 'person-outline';
-    label = 'Profile';
+  let iconSize = 24;
+
+  switch (route.name) {
+    case 'HomeTab':
+      iconName = focused ? 'home' : 'home-outline';
+      break;
+    case 'ExploreTab':
+      iconName = focused ? 'compass' : 'compass-outline';
+      break;
+    case 'ScanTab':
+      iconName = focused ? 'camera' : 'camera-outline';
+      iconSize = 28;
+      break;
+    case 'SavedTab':
+      iconName = focused ? 'bookmark' : 'bookmark-outline';
+      break;
+    case 'ProfileTab':
+      iconName = focused ? 'person' : 'person-outline';
+      break;
+    default:
+      iconName = 'help';
   }
-  
+
   return (
-    <View style={{
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '100%',
-      paddingTop: 8,
-      paddingBottom: 4
-    }}>
-      <Ionicons name={iconName} size={24} color={focused ? '#4CAF50' : '#757575'} />
-      <Text style={{ 
-        fontSize: 12, 
-        color: focused ? '#4CAF50' : '#757575',
-        marginTop: 4,
-        fontWeight: focused ? '500' : 'normal'
-      }}>
-        {label}
-      </Text>
+    <View style={[styles.tabIconContainer, focused && styles.tabIconContainerActive]}>
+      <Ionicons name={iconName} size={iconSize} color={focused ? '#4CAF50' : '#757575'} />
     </View>
   );
 };
@@ -171,29 +170,36 @@ const TabNavigator = () => {
         tabBarShowLabel: false,
         headerShown: false,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 88 : 70,
+          height: Platform.OS === 'ios' ? 90 : 80,
           backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#EEEEEE',
+          borderTopWidth: 0,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 0,
+          shadowColor: 'transparent',
           ...Platform.select({
             ios: {
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: -2 },
+              shadowOffset: { width: 0, height: 0 },
               shadowOpacity: 0.1,
               shadowRadius: 4,
             },
             android: {
-              elevation: 8,
+              elevation: 0,
             }
           })
         },
         tabBarItemStyle: {
           height: '100%',
+          paddingVertical: 8,
         }
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeStack} />
       <Tab.Screen name="ExploreTab" component={DiscoverStack} />
+      <Tab.Screen name="ScanTab" component={ScanStack} />
       <Tab.Screen name="SavedTab" component={SavedStack} />
       <Tab.Screen name="ProfileTab" component={ProfileStack} />
     </Tab.Navigator>
@@ -250,7 +256,6 @@ const MainNavigator = () => {
           <Stack.Screen name="PlantList" component={PlantListScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="AllPopularPlants" component={AllPopularPlantsScreen} />
-          <Stack.Screen name="ScanPlant" component={ScanPlantScreen} />
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
           <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
@@ -274,23 +279,16 @@ const AppNavigator = () => {
 export default AppNavigator;
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 60,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
-  },
-  tabBarLabel: {
-    fontSize: 12,
-    marginBottom: 5,
-  },
-  addButton: {
-    backgroundColor: '#F1F8E9',
+  tabIconContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: 'transparent',
+  },
+  tabIconContainerActive: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    transform: [{ scale: 1.1 }],
   },
 });

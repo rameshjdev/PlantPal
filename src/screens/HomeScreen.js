@@ -24,8 +24,17 @@ import { fetchPlants, removePlant } from '../store/plantsSlice';
 import { fetchReminders } from '../store/remindersSlice';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
+
+// Add getGreeting function
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
 
 // Memoized selectors
 const selectUserPlants = createSelector(
@@ -264,6 +273,7 @@ const HomeScreen = () => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth(); // Add this line to get the current user
   
   useEffect(() => {
     const fetchData = async () => {
@@ -465,8 +475,8 @@ const HomeScreen = () => {
       >
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.welcomeText}>Welcome to</Text>
-            <Text style={styles.title}>PlantPal</Text>
+            <Text style={styles.greetingText}>{getGreeting()},</Text>
+            <Text style={styles.userName}>{user?.displayName || 'Plant Lover'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -477,46 +487,21 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.contentContainer}>
-          {/* Quick Actions Section */}
+          {/* Quick Actions Section - Redesigned */}
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity 
-              style={[styles.quickActionCard, {backgroundColor: '#4CAF50'}]}
-              onPress={() => navigation.navigate('ScanPlant')}
-            >
-              <LinearGradient
-                colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.quickActionGradient}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={styles.quickActionIconContainer}>
-                    <Ionicons name="scan-outline" size={24} color="white" />
-                  </View>
-                  <Text style={styles.quickActionTitle}>Scan Plant</Text>
-                  <Text style={styles.quickActionSubtitle}>Identify plants with your camera</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.quickActionCard, {backgroundColor: '#2196F3'}]}
+              style={styles.careRemindersCard}
               onPress={() => navigation.navigate('AllAlerts')}
             >
-              <LinearGradient
-                colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.quickActionGradient}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={styles.quickActionIconContainer}>
-                    <Ionicons name="notifications-outline" size={24} color="white" />
-                  </View>
-                  <Text style={styles.quickActionTitle}>Care Reminders</Text>
-                  <Text style={styles.quickActionSubtitle}>{todayReminders.length} tasks for today</Text>
+              <View style={styles.careRemindersContent}>
+                <View style={styles.careRemindersIconContainer}>
+                  <Ionicons name="notifications-outline" size={28} color="#2196F3" />
                 </View>
-              </LinearGradient>
+                <View style={styles.careRemindersTextContainer}>
+                  <Text style={styles.careRemindersTitle}>Care Reminders</Text>
+                  <Text style={styles.careRemindersSubtitle}>{todayReminders.length} tasks for today</Text>
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -779,13 +764,19 @@ const styles = StyleSheet.create({
   headerTextContainer: {
     flex: 1,
   },
-  welcomeText: {
+  greetingText: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
-  title: {
+  userName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+  },
+  welcomeText: {
     fontSize: 32,
     fontWeight: 'bold',
     color: 'white',
@@ -805,42 +796,55 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     padding: 16,
     paddingTop: 8,
+    alignItems: 'center',
   },
-  quickActionCard: {
-    width: width * 0.44,
-    borderRadius: 16,
+  careRemindersCard: {
+    width: width * 0.9,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'white',
     overflow: 'hidden',
-    height: 130,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  quickActionGradient: {
-    width: '100%',
+  careRemindersContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     height: '100%',
   },
-  quickActionContent: {
-    padding: 16,
-  },
-  quickActionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  careRemindersIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginRight: 16,
   },
-  quickActionTitle: {
-    fontSize: 16,
+  careRemindersTextContainer: {
+    flex: 1,
+  },
+  careRemindersTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#2196F3',
     marginBottom: 4,
   },
-  quickActionSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+  careRemindersSubtitle: {
+    fontSize: 14,
+    color: '#757575',
   },
   sectionHeader: {
     flexDirection: 'row',

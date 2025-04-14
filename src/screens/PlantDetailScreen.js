@@ -26,18 +26,18 @@ import { toggleFavorite, addToCollection } from '../store/plantsSlice';
 const { width, height } = Dimensions.get('window');
 
 const PlantDetailScreen = ({ route }) => {
-  const { plantId } = route.params;
+  const { plantId, identifiedPlant, isTemporary, fromIdentification } = route.params;
   const navigation = useNavigation();
   const dispatch = useDispatch();
   
-  const [plant, setPlant] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [plant, setPlant] = useState(identifiedPlant || null);
+  const [loading, setLoading] = useState(!identifiedPlant);
   const [error, setError] = useState(null);
   
-  // Get the favorite status from Redux store
+  // Get the favorite status from Redux store - only relevant for database plants
   const userPlants = useSelector(state => state.plants.userPlants);
-  const isFavorite = userPlants.some(p => String(p.id) === String(plantId) && p.isFavorite);
-  const isInCollection = userPlants.some(p => String(p.id) === String(plantId));
+  const isFavorite = plantId ? userPlants.some(p => String(p.id) === String(plantId) && p.isFavorite) : false;
+  const isInCollection = plantId ? userPlants.some(p => String(p.id) === String(plantId)) : false;
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -46,9 +46,27 @@ const PlantDetailScreen = ({ route }) => {
 
   // Fetch plant details on component mount
   useEffect(() => {
-    fetchPlantDetails();
+    // If we have an identified plant from the identification screen, use it directly
+    if (identifiedPlant) {
+      // We already set the plant state in the useState initialization
+      // Start entrance animations
+      startAnimations();
+      return;
+    }
     
-    // Start entrance animations
+    // Otherwise fetch from database only if we have a plantId
+    if (plantId) {
+      fetchPlantDetails();
+    } else {
+      setLoading(false);
+      setError('No plant data provided');
+    }
+    
+    startAnimations();
+  }, [identifiedPlant, plantId]);
+
+  // Start the entrance animations
+  const startAnimations = () => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -61,10 +79,16 @@ const PlantDetailScreen = ({ route }) => {
         useNativeDriver: true
       })
     ]).start();
-  }, [plantId]);
+  };
 
   // Fetch plant details from API
   const fetchPlantDetails = async () => {
+    // Skip if we're showing an identified plant
+    if (identifiedPlant || fromIdentification) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       const data = await plantService.getPlantById(plantId);

@@ -560,6 +560,21 @@ const PlantListScreen = ({ route }) => {
         return { uri: item.image_url };
       }
       
+      
+      // Then try the Perenual API default_image format
+      if (item.default_image) {
+        // Try to get the best quality image available
+        if (item.default_image.medium_url) {
+          return { uri: item.default_image.medium_url };
+        } else if (item.default_image.regular_url) {
+          return { uri: item.default_image.regular_url };
+        } else if (item.default_image.small_url) {
+          return { uri: item.default_image.small_url };
+        } else if (item.default_image.thumbnail) {
+          return { uri: item.default_image.thumbnail };
+        }
+      }
+    
       // Then try the Perenual API default_image format
       if (item.default_image) {
         // Try to get the best quality image available
@@ -586,9 +601,6 @@ const PlantListScreen = ({ route }) => {
           return { uri: item.image };
         }
       }
-
-      // Fallback to default image
-      return require('../../assets/monstera.png');
     };
 
     // Handle image loading errors
@@ -767,6 +779,18 @@ const PlantListScreen = ({ route }) => {
                   </Text>
                 </View>
               )}
+              
+              {/* Plant Name Overlay */}
+              <View style={styles.plantNameOverlay}>
+                <Text style={styles.plantNameText} numberOfLines={2}>
+                  {item.name || 'Unknown Plant'}
+                </Text>
+              </View>
+              
+              {/* Tag Icon */}
+              <View style={styles.tagIconContainer}>
+                <MaterialCommunityIcons name="tag" size={16} color="#4CAF59" />
+              </View>
               
               {/* Category Badge */}
               <View style={styles.categoryBadge}>
@@ -1164,14 +1188,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#9e9e9e',
   },
-  categoryBadge: {
+  tagIconContainer: {
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(29, 150, 79, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.5,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 45, // Adjusted to not overlap with tag icon
+    backgroundColor: 'rgba(79, 30, 124, 0.65)',
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
+    zIndex: 2,
   },
   categoryText: {
     color: 'white',
@@ -1360,6 +1408,24 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  plantNameOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+    backgroundColor: 'rgba(65, 131, 34, 0.5)',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  plantNameText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(112, 25, 83, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
 
