@@ -1,10 +1,12 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { PLANTNET_API_KEY, PLANTNET_API_URL } from '@env';
+
 
 // PlantNet API Configuration
-const API_KEY = '2b10MTO9hSwmHFBeb8mEdGoPC'; // IMPORTANT: This is a test key - get your own key from https://my.plantnet.org/
-const API_URL = 'https://my-api.plantnet.org/v2/identify/all';
+const API_KEY = PLANTNET_API_KEY;
+const API_URL = PLANTNET_API_URL;
 
 /**
  * Plant Identification Service

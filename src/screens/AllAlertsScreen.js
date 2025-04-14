@@ -30,9 +30,31 @@ const AllAlertsScreen = () => {
   
   // Fetch reminders on component mount
   useEffect(() => {
-    console.log('Fetching reminders...');
-    dispatch(fetchReminders());
-  }, [dispatch]);
+    const loadReminders = async () => {
+      console.log('Starting to fetch reminders...');
+      try {
+        await dispatch(fetchReminders()).unwrap();
+        console.log('Successfully fetched reminders');
+      } catch (error) {
+        console.error('Failed to fetch reminders:', error);
+        Alert.alert(
+          'Error',
+          'Failed to load reminders. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    };
+    
+    loadReminders();
+    
+    // Reload reminders when the component is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('Screen focused, reloading reminders...');
+      loadReminders();
+    });
+    
+    return unsubscribe;
+  }, [dispatch, navigation]);
   
   // Get current date for filtering
   const today = new Date().toISOString().split('T')[0];
@@ -43,12 +65,29 @@ const AllAlertsScreen = () => {
     
     console.log('Checking reminder:', reminder);
     
+    // Add better date handling and comparison
+    const reminderDate = reminder.nextDue ? new Date(reminder.nextDue).toISOString().split('T')[0] : null;
+    const lastCompletedDate = reminder.lastCompleted ? new Date(reminder.lastCompleted).toISOString().split('T')[0] : null;
+    
+    // Debug logging
+    console.log(`Reminder "${reminder.type}" for "${reminder.plantName}": nextDue=${reminderDate}, today=${today}, lastCompleted=${lastCompletedDate}`);
+    
     if (filter === 'all') return true;
-    if (filter === 'today') return reminder.nextDue === today;
-    if (filter === 'upcoming') return reminder.nextDue > today;
-    if (filter === 'completed') {
-      return reminder.lastCompleted && reminder.lastCompleted === today;
+    
+    if (filter === 'today') {
+      return reminderDate === today;
     }
+    
+    if (filter === 'upcoming') {
+      if (!reminderDate) return false;
+      return reminderDate > today;
+    }
+    
+    if (filter === 'completed') {
+      if (!lastCompletedDate) return false;
+      return lastCompletedDate === today;
+    }
+    
     return true;
   });
 
@@ -77,12 +116,20 @@ const AllAlertsScreen = () => {
   };
 
   const renderReminderItem = ({ item }) => {
+    if (!item) return null;
+    
     console.log('Rendering reminder item:', item);
-    const isToday = item.nextDue === today;
-    const isPast = item.nextDue < today;
+    
+    // Properly format dates for comparison
+    const reminderDate = item.nextDue ? new Date(item.nextDue).toISOString().split('T')[0] : null;
+    const isToday = reminderDate === today;
+    const isPast = reminderDate && reminderDate < today;
     
     // Get the associated plant
     const plant = userPlants.find(p => p.id === item.plantId);
+    
+    // Get the plant name from various sources
+    const plantName = item.plantName || (plant ? plant.name : 'Unknown Plant');
     
     const getPlantImage = () => {
       if (!plant) return null;
@@ -94,6 +141,7 @@ const AllAlertsScreen = () => {
       if (typeof plant.image === 'number') return plant.image;
       if (plant.image && plant.image.uri) return { uri: plant.image.uri };
       if (typeof plant.image === 'string') return { uri: plant.image };
+      if (plant.image_url) return { uri: plant.image_url };
       
       return null;
     };
@@ -118,19 +166,19 @@ const AllAlertsScreen = () => {
         ) : (
           <View style={[styles.reminderImage, styles.reminderPlaceholder]}>
             <Text style={styles.reminderPlaceholderText}>
-              {item.plantName ? item.plantName.charAt(0) : (plant ? plant.name.charAt(0) : "P")}
+              {plantName.charAt(0)}
             </Text>
           </View>
         )}
         <View style={styles.reminderInfo}>
           <Text style={styles.reminderTitle}>
             {item.type === 'watering' 
-              ? `Water your ${item.plantName}` 
+              ? `Water your ${plantName}` 
               : item.type === 'fertilizing'
-                ? `Fertilize your ${item.plantName}`
+                ? `Fertilize your ${plantName}`
                 : item.type === 'pruning'
-                  ? `Prune your ${item.plantName}`
-                  : `Check your ${item.plantName}`
+                  ? `Prune your ${plantName}`
+                  : `Check your ${plantName}`
             }
             {item.location ? ` (${item.location.toLowerCase()})` : ''}
           </Text>
@@ -146,7 +194,7 @@ const AllAlertsScreen = () => {
           
           <View style={styles.reminderActions}>
             <Switch
-              value={item.enabled}
+              value={!!item.enabled}
               onValueChange={() => handleToggleEnabled(item.id)}
               trackColor={{ false: '#DDDDDD', true: '#A5D6A7' }}
               thumbColor={item.enabled ? '#4CAF50' : '#F5F5F5'}
@@ -221,6 +269,28 @@ const AllAlertsScreen = () => {
       );
     }
 
+    // Check if we have valid reminders
+    console.log('Reminders data:', JSON.stringify(reminders));
+    console.log('Filtered reminders:', JSON.stringify(filteredReminders));
+    
+    if (!Array.isArray(reminders) || reminders.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="notifications-off-outline" size={60} color="#CCCCCC" />
+          <Text style={styles.emptyText}>No alerts found</Text>
+          <Text style={styles.emptySubtext}>
+            You have no plant care alerts setup yet
+          </Text>
+          <TouchableOpacity 
+            style={styles.createButton}
+            onPress={handleAddReminder}
+          >
+            <Text style={styles.createButtonText}>Create Alert</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     if (filteredReminders.length === 0) {
       return (
         <View style={styles.emptyContainer}>
@@ -247,10 +317,22 @@ const AllAlertsScreen = () => {
 
     return (
       <FlatList
-        data={filteredReminders}
+        data={filteredReminders.filter(reminder => reminder !== null && reminder !== undefined)}
         renderItem={renderReminderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => String(item.id || Math.random().toString())}
         contentContainerStyle={styles.reminderList}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={60} color="#CCCCCC" />
+            <Text style={styles.emptyText}>No alerts found</Text>
+            <TouchableOpacity 
+              style={styles.createButton}
+              onPress={handleAddReminder}
+            >
+              <Text style={styles.createButtonText}>Create Alert</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
     );
   };
