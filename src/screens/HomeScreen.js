@@ -212,7 +212,6 @@ const CategoryCard = ({ category }) => {
   const navigation = useNavigation();
   const theme = useTheme();
   
-  // Generate a consistent color based on category name
   const getCategoryColor = (categoryName) => {
     const colors = [
       '#4CAF50', '#2196F3', '#9C27B0', '#FF9800', 
@@ -237,7 +236,7 @@ const CategoryCard = ({ category }) => {
         showAllPlants: true
       })}
     >
-      <View style={[styles.categoryImageContainer, { backgroundColor: `${categoryColor}15` }]}>
+      <View style={[styles.categoryImageContainer, { backgroundColor: `${categoryColor}10` }]}>
         {category.image ? (
           <Image
             source={{ uri: category.image }}
@@ -249,16 +248,16 @@ const CategoryCard = ({ category }) => {
           </View>
         )}
         <LinearGradient
-          colors={['transparent', `${categoryColor}20`]}
+          colors={['transparent', `${categoryColor}30`]}
           style={styles.categoryGradient}
         />
       </View>
       
       <View style={styles.categoryInfo}>
-        <Text style={styles.categoryName} numberOfLines={1}>
+        <Text style={[styles.categoryName, { color: categoryColor }]} numberOfLines={1}>
           {category.name}
         </Text>
-        <View style={[styles.categoryCountContainer, { backgroundColor: `${categoryColor}20` }]}>
+        <View style={[styles.categoryCountContainer, { backgroundColor: `${categoryColor}15` }]}>
           <Text style={[styles.categoryCount, { color: categoryColor }]}>
             {category.count} plants
           </Text>
@@ -648,6 +647,584 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  quickActionsContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  careRemindersCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  careRemindersContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  careRemindersIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  careRemindersTextContainer: {
+    flex: 1,
+  },
+  careRemindersTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  careRemindersSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  viewAllButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  myPlantsSection: {
+    marginBottom: 24,
+  },
+  myPlantsGradient: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  plantStatsContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    justifyContent: 'space-around',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  plantStatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  plantStatIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  plantStatTextContainer: {
+    flex: 1,
+  },
+  plantStatNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  plantStatLabel: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  statDivider: {
+    width: 1,
+    height: '80%',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    alignSelf: 'center',
+    marginHorizontal: 16,
+  },
+  userPlantsList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  userPlantItem: {
+    marginBottom: 12,
+  },
+  userPlantCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  userPlantImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 16,
+  },
+  plantPlaceholder: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userPlantInfo: {
+    flex: 1,
+  },
+  userPlantName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  userPlantSpecies: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 6,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginLeft: 4,
+  },
+  removeButton: {
+    padding: 8,
+  },
+  categoriesContainer: {
+    paddingLeft: 16,
+    paddingRight: 8,
+    marginBottom: 24,
+  },
+  categoryCard: {
+    width: 120,
+    height: 160,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  categoryImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -30,
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  categoryIconContainer: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    borderBottomLeftRadius: 60,
+    borderBottomRightRadius: 60,
+  },
+  categoryInfo: {
+    padding: 12,
+    alignItems: 'center',
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  categoryCountContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryCount: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  popularPlantsContainer: {
+    paddingLeft: 16,
+    paddingRight: 8,
+    marginBottom: 24,
+  },
+  popularPlantCard: {
+    width: width * 0.6,
+    height: 200,
+    marginRight: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  popularPlantImageContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  popularPlantImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  popularPlantGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  popularPlantInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  popularPlantName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  popularPlantSpecies: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  quickActionsContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  careRemindersCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  careRemindersContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  careRemindersIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  careRemindersTextContainer: {
+    flex: 1,
+  },
+  careRemindersTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  careRemindersSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  viewAllButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  myPlantsSection: {
+    marginBottom: 24,
+  },
+  myPlantsGradient: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  plantStatsContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    justifyContent: 'space-around',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  plantStatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  plantStatIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  plantStatTextContainer: {
+    flex: 1,
+  },
+  plantStatNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  plantStatLabel: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  statDivider: {
+    width: 1,
+    height: '80%',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    alignSelf: 'center',
+    marginHorizontal: 16,
+  },
+  userPlantsList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  userPlantItem: {
+    marginBottom: 12,
+  },
+  userPlantCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  userPlantImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 16,
+  },
+  plantPlaceholder: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userPlantInfo: {
+    flex: 1,
+  },
+  userPlantName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  userPlantSpecies: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 6,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginLeft: 4,
+  },
+  removeButton: {
+    padding: 8,
+  },
+  container: {
+    flex: 1,
     backgroundColor: '#F8F9FA',
   },
   scrollView: {
@@ -741,19 +1318,15 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 20,
+    paddingHorizontal: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   headerContent: {
     flexDirection: 'row',
@@ -972,6 +1545,7 @@ const styles = StyleSheet.create({
   popularPlantImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   popularPlantGradient: {
     position: 'absolute',

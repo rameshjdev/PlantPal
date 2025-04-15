@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { signIn } from '../services/supabaseService';
+import { signIn, resetPassword } from '../services/supabaseService';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 // Temporarily comment out these imports until we have proper development builds
@@ -124,6 +124,37 @@ const LoginScreen = () => {
     Alert.alert('Coming Soon', 'Apple sign in will be available in the next update.');
   };
 
+  const handleForgotPassword = async () => {
+    // Validate email
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address first');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await resetPassword(email);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert(
+          'Password Reset Email Sent',
+          'Please check your email for instructions to reset your password.'
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -217,7 +248,11 @@ const LoginScreen = () => {
                 {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               </View>
 
-              <TouchableOpacity style={styles.forgotPasswordContainer}>
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={handleForgotPassword}
+                disabled={loading}
+              >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
 
