@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSelector } from 'react-redux';
+import { Alert } from 'react-native';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -161,6 +162,23 @@ const TabBarIcon = ({ route, focused }) => {
 
 // Main tab navigator
 const TabNavigator = () => {
+  const handleScanPress = () => {
+    Alert.alert(
+      'Coming Soon!',
+      'Plant Screening will be available in the next update.',
+      [
+        {
+          text: 'OK',
+          style: 'default',
+        }
+      ],
+      {
+        titleStyle: { fontWeight: 'bold' },
+        messageStyle: { textAlign: 'center' }
+      }
+    );
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -169,32 +187,18 @@ const TabNavigator = () => {
         tabBarInactiveTintColor: '#757575',
         tabBarShowLabel: false,
         headerShown: false,
-        tabBarStyle: {
-          height: Platform.OS === 'ios' ? 90 : 80,
-          backgroundColor: 'white',
-          borderTopWidth: 0,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          elevation: 0,
-          shadowColor: 'transparent',
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-            },
-            android: {
-              elevation: 0,
-            }
-          })
-        },
-        tabBarItemStyle: {
-          height: '100%',
-          paddingVertical: 8,
-        }
+        tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabBarItem,
+        // Add listener for the Scan tab
+        ...(route.name === 'ScanTab' && {
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              style={[props.style, { flex: 1 }]}
+              onPress={handleScanPress}
+            />
+          ),
+        }),
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeStack} />
@@ -205,6 +209,48 @@ const TabNavigator = () => {
     </Tab.Navigator>
   );
 };
+
+// Add these styles to the existing StyleSheet
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  tabIconContainerActive: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    transform: [{ scale: 1.1 }],
+  },
+  tabBar: {
+    height: Platform.OS === 'ios' ? 90 : 80,
+    backgroundColor: 'white',
+    borderTopWidth: 0,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 0,
+    shadowColor: 'transparent',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 0,
+      }
+    })
+  },
+  tabBarItem: {
+    height: '100%',
+    paddingVertical: 8,
+  }
+});
 
 // Main app with tab navigator
 const MainApp = () => {
@@ -277,18 +323,3 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
-
-const styles = StyleSheet.create({
-  tabIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  tabIconContainerActive: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    transform: [{ scale: 1.1 }],
-  },
-});

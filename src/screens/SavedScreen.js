@@ -49,9 +49,6 @@ const SavedScreen = () => {
            plant.light.toLowerCase().includes('low'))) return true;
       if (filterType === 'outdoor' && plant.light && 
           plant.light.toLowerCase().includes('full sun')) return true;
-      if (filterType === 'easy' && plant.careLevel && 
-          (plant.careLevel === 'Very Easy' || plant.careLevel === 'Easy')) return true;
-      return false;
     });
 
   // Render filter buttons
@@ -59,8 +56,7 @@ const SavedScreen = () => {
     const filters = [
       { label: 'All', value: 'all' },
       { label: 'Indoor', value: 'indoor' },
-      { label: 'Outdoor', value: 'outdoor' },
-      { label: 'Easy Care', value: 'easy' },
+      { label: 'OutDoor', value: 'outdoor' },
     ];
     
     return (
@@ -89,64 +85,97 @@ const SavedScreen = () => {
   };
 
   // Render a plant item
-  const renderPlantItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.plantCard}
-      onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
-    >
-      <View style={styles.plantImageContainer}>
-        <Image 
-          source={typeof item.image === 'number' ? item.image : { uri: item.image }} 
-          style={styles.plantImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.3)']}
-          style={styles.plantImageGradient}
-        />
-        <TouchableOpacity 
-          style={styles.favoriteButton}
-          onPress={() => dispatch(toggleFavorite(item.id))}
-        >
-          <Ionicons 
-            name={item.isFavorite ? "heart" : "heart-outline"} 
-            size={20} 
-            color="#E91E63" 
-          />
-        </TouchableOpacity>
-      </View>
+  const renderPlantItem = ({ item }) => {
+    const getPlantImage = () => {
+      if (!item) return null;
       
-      <View style={styles.plantInfo}>
-        <Text style={styles.plantName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.plantSpecies} numberOfLines={1}>{item.species || 'Houseplant'}</Text>
+      // First try to get the image from the plant object
+      if (item.image) {
+        if (typeof item.image === 'string') {
+          return { uri: item.image };
+        }
+        if (item.image.uri) {
+          return { uri: item.image.uri };
+        }
+      }
+      
+      // Try default_image if available
+      if (item.default_image && item.default_image.medium_url) {
+        return { uri: item.default_image.medium_url };
+      }
+      
+      // Try image_url if available
+      if (item.image_url) {
+        return { uri: item.image_url };
+      }
+      
+      // If no image is found, return a local fallback image
+      return require('../../assets/empty_plants.png');
+    };
+
+    const plantImage = getPlantImage();
+    const plantColor = '#4CAF50';
+
+    return (
+      <TouchableOpacity 
+        style={styles.plantCard}
+        onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
+      >
+        <View style={styles.plantImageContainer}>
+          {plantImage ? (
+            <Image 
+              source={plantImage}
+              style={styles.plantImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.plantImage, styles.plantPlaceholder, { backgroundColor: `${plantColor}15` }]}>
+              <Ionicons name="leaf" size={40} color={plantColor} />
+            </View>
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.3)']}
+            style={styles.plantImageGradient}
+          />
+          <TouchableOpacity 
+            style={styles.favoriteButton}
+            onPress={() => dispatch(toggleFavorite(item.id))}
+          >
+            <Ionicons 
+              name={item.isFavorite ? "heart" : "heart-outline"} 
+              size={20} 
+              color="#E91E63" 
+            />
+          </TouchableOpacity>
+        </View>
         
-        <View style={styles.plantDetails}>
-          <View style={styles.plantDetailItem}>
-            <MaterialCommunityIcons name="water-outline" size={14} color="#4CAF50" />
-            <Text style={styles.plantDetailText}>{item.water}</Text>
-          </View>
+        <View style={styles.plantInfo}>
+          <Text style={styles.plantName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.plantSpecies} numberOfLines={1}>{item.species || 'Houseplant'}</Text>
           
-          <View style={styles.careLevelContainer}>
-            <Text style={[
-              styles.careLevelText,
-              {
-                backgroundColor: 
-                  item.careLevel === 'Very Easy' ? '#E8F5E9' : 
-                  item.careLevel === 'Easy' ? '#DCEDC8' : 
-                  item.careLevel === 'Moderate' ? '#FFF9C4' : '#FFCCBC',
-                color: 
-                  item.careLevel === 'Very Easy' ? '#2E7D32' : 
-                  item.careLevel === 'Easy' ? '#558B2F' : 
-                  item.careLevel === 'Moderate' ? '#F9A825' : '#D84315'
-              }
-            ]}>
-              {item.careLevel || 'Moderate'}
-            </Text>
+          <View style={styles.plantDetails}>
+            <View style={styles.plantDetailItem}>
+              <MaterialCommunityIcons name="water-outline" size={14} color="#4CAF50" />
+              <Text style={styles.plantDetailText}>{item.water || 'Regular'}</Text>
+            </View>
+            
+            <View style={styles.careLevelContainer}>
+              <Text style={[styles.careLevelText, {
+                backgroundColor: item.careLevel === 'Very Easy' ? '#E8F5E9' : 
+                               item.careLevel === 'Easy' ? '#DCEDC8' : 
+                               item.careLevel === 'Moderate' ? '#FFF9C4' : '#FFCCBC',
+                color: item.careLevel === 'Very Easy' ? '#2E7D32' : 
+                       item.careLevel === 'Easy' ? '#558B2F' : 
+                       item.careLevel === 'Moderate' ? '#F9A825' : '#D84315'
+              }]}>
+                {item.careLevel || 'Moderate'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -285,40 +314,36 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   plantList: {
-    padding: 12,
-    paddingBottom: 100, // Allow space for tab bar
+    padding: 16,
+    paddingBottom: 100,
   },
   row: {
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   plantCard: {
     width: COLUMN_WIDTH,
     backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      }
-    }),
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   plantImageContainer: {
     position: 'relative',
     width: '100%',
-    height: 150,
+    height: COLUMN_WIDTH * 1.2,
   },
   plantImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+  },
+  plantPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   plantImageGradient: {
     position: 'absolute',
