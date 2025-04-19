@@ -272,7 +272,7 @@ const HomeScreen = () => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user } = useAuth(); // Add this line to get the current user
+  const { user } = useAuth();
   
   useEffect(() => {
     const fetchData = async () => {
@@ -437,7 +437,7 @@ const HomeScreen = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00FF7F" />
         <Text style={styles.loadingText}>Loading plants data...</Text>
       </SafeAreaView>
     );
@@ -446,7 +446,7 @@ const HomeScreen = () => {
   if (error) {
     return (
       <SafeAreaView style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#F44336" />
+        <Ionicons name="alert-circle-outline" size={48} color="#FF453A" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity 
           style={styles.retryButton}
@@ -463,22 +463,23 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       
       {/* Modern Header */}
-      <LinearGradient
-        colors={['#4CAF50', '#2E7D32']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greetingText}>{getGreeting()},</Text>
             <Text style={styles.userName}>{user?.displayName || 'Plant Lover'}</Text>
           </View>
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
       
       <ScrollView 
         style={styles.scrollView} 
@@ -486,7 +487,7 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.contentContainer}>
-          {/* Quick Actions Section - Redesigned */}
+          {/* Quick Actions Section */}
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={styles.careRemindersCard}
@@ -494,7 +495,7 @@ const HomeScreen = () => {
             >
               <View style={styles.careRemindersContent}>
                 <View style={styles.careRemindersIconContainer}>
-                  <Ionicons name="notifications-outline" size={28} color="#2196F3" />
+                  <Ionicons name="notifications-outline" size={28} color="#00FF7F" />
                 </View>
                 <View style={styles.careRemindersTextContainer}>
                   <Text style={styles.careRemindersTitle}>Care Reminders</Text>
@@ -504,7 +505,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* My Collection Section - Redesigned */}
+          {/* My Collection Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Collection</Text>
             {userPlants.length > 0 && (
@@ -519,7 +520,7 @@ const HomeScreen = () => {
           
           <View style={styles.myPlantsSection}>
             <LinearGradient
-              colors={['#E8F5E9', '#F1F8E9']}
+              colors={['#1A1A1A', '#000000']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={styles.myPlantsGradient}
@@ -527,7 +528,7 @@ const HomeScreen = () => {
               <View style={styles.plantStatsContainer}>
                 <View style={styles.plantStatCard}>
                   <View style={styles.plantStatIconContainer}>
-                    <Ionicons name="leaf-outline" size={22} color="#4CAF50" />
+                    <Ionicons name="leaf-outline" size={22} color="#00FF7F" />
                   </View>
                   <View style={styles.plantStatTextContainer}>
                     <Text style={styles.plantStatNumber}>{userPlants.length}</Text>
@@ -539,7 +540,7 @@ const HomeScreen = () => {
                 
                 <View style={styles.plantStatCard}>
                   <View style={styles.plantStatIconContainer}>
-                    <Ionicons name="heart-outline" size={22} color="#4CAF50" />
+                    <Ionicons name="heart-outline" size={22} color="#00FF7F" />
                   </View>
                   <View style={styles.plantStatTextContainer}>
                     <Text style={styles.plantStatNumber}>
@@ -566,7 +567,7 @@ const HomeScreen = () => {
                 />
               ) : (
                 <View style={styles.emptyCollectionContainer}>
-                  <Ionicons name="leaf-outline" size={48} color="#4CAF50" />
+                  <Ionicons name="leaf-outline" size={48} color="#00FF7F" />
                   <Text style={styles.emptyCollectionText}>Your collection is empty</Text>
                   <Text style={styles.emptyCollectionSubtext}>Scan a plant to add it to your collection</Text>
                 </View>
@@ -574,7 +575,7 @@ const HomeScreen = () => {
             </LinearGradient>
           </View>
 
-          {/* Categories Section - Add this after My Collection Section */}
+          {/* Categories Section */}
           {plantCategories.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
@@ -619,7 +620,7 @@ const HomeScreen = () => {
             </>
           )}
           
-          {/* Alerts Section */}
+          {/* Today's Care Section */}
           {todayReminders.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
@@ -647,29 +648,49 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#000000',
   },
-  scrollView: {
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
   },
-  scrollContent: {
-    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#00FF7F',
   },
-  contentContainer: {
-    paddingHorizontal: 16,
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    padding: 24,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#FF453A',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#00FF7F',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#000000',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 20,
     paddingHorizontal: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    backgroundColor: '#1A1A1A',
   },
   headerContent: {
     flexDirection: 'row',
@@ -681,22 +702,37 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
   },
   userName: {
     fontSize: 24,
-    color: '#FFFFFF',
     fontWeight: 'bold',
-    marginTop: 4,
+    color: '#FFFFFF',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
   },
   quickActionsContainer: {
     marginTop: 24,
     marginBottom: 16,
   },
   careRemindersCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 16,
     elevation: 2,
@@ -713,7 +749,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -724,12 +760,12 @@ const styles = StyleSheet.create({
   careRemindersTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   careRemindersSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -741,7 +777,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
   },
   viewAllButton: {
     paddingVertical: 8,
@@ -749,7 +785,7 @@ const styles = StyleSheet.create({
   },
   viewAllButtonText: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: '#00FF7F',
     fontWeight: '600',
   },
   myPlantsSection: {
@@ -769,7 +805,7 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'space-around',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   plantStatCard: {
     flexDirection: 'row',
@@ -780,7 +816,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -791,17 +827,17 @@ const styles = StyleSheet.create({
   plantStatNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   plantStatLabel: {
     fontSize: 12,
-    color: '#666666',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   statDivider: {
     width: 1,
     height: '80%',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignSelf: 'center',
     marginHorizontal: 16,
   },
@@ -815,7 +851,7 @@ const styles = StyleSheet.create({
   },
   userPlantCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -832,7 +868,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   plantPlaceholder: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -842,18 +878,18 @@ const styles = StyleSheet.create({
   userPlantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   userPlantSpecies: {
     fontSize: 14,
-    color: '#666666',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 6,
   },
   locationTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
@@ -861,76 +897,28 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: '#00FF7F',
     marginLeft: 4,
   },
   removeButton: {
     padding: 8,
   },
-  categoriesContainer: {
-    paddingLeft: 16,
-    paddingRight: 8,
-    marginBottom: 24,
-  },
-  categoryCard: {
-    width: 120,
-    height: 160,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  categoryImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -30,
-  },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 60,
-  },
-  categoryIconContainer: {
-    width: '100%',
-    height: '100%',
+  emptyCollectionContainer: {
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    borderBottomLeftRadius: 60,
-    borderBottomRightRadius: 60,
+  emptyCollectionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  categoryInfo: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  categoryName: {
+  emptyCollectionSubtext: {
     fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
-  },
-  categoryCountContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  categoryCount: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   popularPlantsContainer: {
     paddingLeft: 16,
@@ -938,11 +926,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   popularPlantCard: {
-    width: width * 0.6,
-    height: 200,
+    width: width * 0.65,
+    height: 220,
     marginRight: 16,
     borderRadius: 16,
     overflow: 'hidden',
+    backgroundColor: '#1A1A1A',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -991,621 +980,21 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  greetingText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    fontWeight: '500',
-  },
-  userName: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  quickActionsContainer: {
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  careRemindersCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  careRemindersContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  careRemindersIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  careRemindersTextContainer: {
-    flex: 1,
-  },
-  careRemindersTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  careRemindersSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  viewAllButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  viewAllButtonText: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  myPlantsSection: {
-    marginBottom: 24,
-  },
-  myPlantsGradient: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  plantStatsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    justifyContent: 'space-around',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  plantStatCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  plantStatIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  plantStatTextContainer: {
-    flex: 1,
-  },
-  plantStatNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  plantStatLabel: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  statDivider: {
-    width: 1,
-    height: '80%',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    alignSelf: 'center',
-    marginHorizontal: 16,
-  },
-  userPlantsList: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  userPlantItem: {
-    marginBottom: 12,
-  },
-  userPlantCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  userPlantImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  plantPlaceholder: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userPlantInfo: {
-    flex: 1,
-  },
-  userPlantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  userPlantSpecies: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 6,
-  },
-  locationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  locationText: {
-    fontSize: 12,
-    color: '#4CAF50',
-    marginLeft: 4,
-  },
-  removeButton: {
-    padding: 8,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 8,
-  },
-  contentContainer: {
-    paddingBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#4CAF50',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    padding: 24,
-  },
-  errorText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#F44336',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  retryButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  emptyListContainer: {
-    width: width - 32,
-    height: 220,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
-    marginLeft: 16,
-  },
-  emptyListText: {
-    fontSize: 16,
-    color: '#757575',
-  },
-  noDataContainer: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  noDataTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noDataMessage: {
-    fontSize: 16,
-    color: '#757575',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  greetingText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-  },
-  welcomeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  quickActionsContainer: {
-    padding: 16,
-    paddingTop: 8,
-    alignItems: 'center',
-  },
-  careRemindersCard: {
-    width: width * 0.9,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  careRemindersContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    height: '100%',
-  },
-  careRemindersIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  careRemindersTextContainer: {
-    flex: 1,
-  },
-  careRemindersTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2196F3',
-    marginBottom: 4,
-  },
-  careRemindersSubtitle: {
-    fontSize: 14,
-    color: '#757575',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#212121',
-  },
-  myPlantsSection: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  myPlantsGradient: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 16,
-  },
-  plantStatsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  plantStatCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  plantStatIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  plantStatTextContainer: {
-    flexDirection: 'column',
-  },
-  plantStatNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  plantStatLabel: {
-    fontSize: 12,
-    color: '#757575',
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
-    marginHorizontal: 8,
-  },
-  addMoreButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  addMoreButtonText: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  startButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  popularPlantsContainer: {
-    paddingLeft: 16,
-    paddingRight: 8,
-  },
-  popularPlantCard: {
-    width: width * 0.65,
-    height: 220,
-    marginRight: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  popularPlantImageContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-  },
-  popularPlantImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  popularPlantGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '50%',
-  },
-  popularPlantInfo: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-  },
-  popularPlantName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  popularPlantSpecies: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  plantDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  plantDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  plantDetailText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginLeft: 4,
-  },
   remindersContainer: {
     paddingHorizontal: 16,
   },
   reminderItem: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   reminderImage: {
     width: 50,
@@ -1619,141 +1008,25 @@ const styles = StyleSheet.create({
   reminderTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   reminderSubtitle: {
     fontSize: 12,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
   },
   bottomSpace: {
     height: 100,
   },
-  userPlantItem: {
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: 'white',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  userPlantCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  userPlantImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 12,
-    backgroundColor: '#E8F5E9',
-  },
-  userPlantInfo: {
-    flex: 1,
-  },
-  userPlantName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212121',
-  },
-  userPlantSpecies: {
-    fontSize: 12,
-    color: '#757575',
-    fontStyle: 'italic',
-    marginBottom: 4,
-  },
-  locationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  locationText: {
-    fontSize: 10,
-    color: '#4CAF50',
-    marginLeft: 2,
-  },
-  removeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFEBEE',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  viewAllButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 16,
-  },
-  viewAllButtonText: {
-    color: '#4CAF50',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  emptyCollectionContainer: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCollectionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyCollectionSubtext: {
-    fontSize: 14,
-    color: '#757575',
-    textAlign: 'center',
-  },
-  plantPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-  },
-  reminderPlaceholder: {
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reminderPlaceholderText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  userPlantsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  userPlantsListTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212121',
-    marginBottom: 12,
-  },
   categoriesContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 8,
+    paddingLeft: 16,
+    paddingRight: 8,
+    marginBottom: 24,
   },
   categoryCard: {
     width: 140,
+    height: 200,
     marginRight: 16,
     borderRadius: 16,
     overflow: 'hidden',

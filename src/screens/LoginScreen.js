@@ -178,138 +178,106 @@ const LoginScreen = () => {
           contentContainerStyle={styles.scrollContainer} 
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo and Brand */}
-          <Animated.View 
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <Image 
-              source={require('../../assets/logo.png')} 
-              style={styles.logo} 
-              resizeMode="contain"
-            />
-            <Text style={styles.appName}>PlantPal</Text>
-            <Text style={styles.tagline}>Your plant journey begins here</Text>
-          </Animated.View>
+          <View style={styles.headerContainer}>
+            <View style={styles.logoCircle}>
+              <MaterialCommunityIcons name="account-lock-open" size={28} color="#00FF7F" />
+            </View>
+            <Text style={styles.headerTitle}>Login</Text>
+            {/* <Text style={styles.headerSubtitle}>New here? <Text style={styles.signUpText}>Sign Up</Text> to get started.</Text> */}
+          </View>
 
-          {/* Form Container */}
-          <Animated.View 
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-              <Text style={styles.welcomeText}>Welcome Back</Text>
-              
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={22} color="#FFFFFF" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor="rgba(255,255,255,0.6)"
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Email or Phone</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email or Phone"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+              />
+              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="Enter password here"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
+                  <MaterialCommunityIcons 
+                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={22} 
+                    color="rgba(255,255,255,0.5)" 
                   />
-                </View>
-                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-              </View>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="lock-outline" size={22} color="#FFFFFF" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    placeholderTextColor="rgba(255,255,255,0.6)"
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
-                    <MaterialCommunityIcons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={22} 
-                      color="rgba(255,255,255,0.8)" 
-                    />
-                  </TouchableOpacity>
-                </View>
-                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-              </View>
-
-              <TouchableOpacity 
-                style={styles.forgotPasswordContainer}
-                onPress={handleForgotPassword}
-                disabled={loading}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>or continue with</Text>
-                <View style={styles.divider} />
-              </View>
-
-              <View style={styles.socialButtonsContainer}>
-                <TouchableOpacity 
-                  style={styles.socialButton}
-                  onPress={handleGoogleSignIn}
-                  disabled={socialLoading}
-                >
-                  <MaterialCommunityIcons name="google" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.socialButton}
-                  onPress={handleFacebookSignIn}
-                  disabled={socialLoading}
-                >
-                  <MaterialCommunityIcons name="facebook" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                
-                {Platform.OS === 'ios' && (
-                  <TouchableOpacity 
-                    style={styles.socialButton}
-                    onPress={handleAppleSignIn}
-                    disabled={socialLoading}
-                  >
-                    <MaterialCommunityIcons name="apple" size={24} color="#FFFFFF" />
-                  </TouchableOpacity>
-                )}
               </View>
-            </BlurView>
-            
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account?</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                <Text style={styles.signupLink}>Sign Up</Text>
+              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+            </View>
+
+            <View style={styles.rememberContainer}>
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity 
+                  style={[styles.checkbox, password ? styles.checkboxChecked : null]}
+                  onPress={() => {/* Toggle remember me */}}
+                />
+                <Text style={styles.rememberText}>Remember Me</Text>
+              </View>
+              <TouchableOpacity onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordText}>Forgot password</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#000000" />
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>Or</Text>
+              <View style={styles.divider} />
+            </View>
+
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
+                <MaterialCommunityIcons name="google" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialButton} onPress={handleFacebookSignIn}>
+                <MaterialCommunityIcons name="facebook" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn}>
+                  <MaterialCommunityIcons name="apple" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.socialButton} onPress={() => {}}>
+                <MaterialCommunityIcons name="instagram" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.bottomTextContainer}>
+              <Text style={styles.bottomText}>Don't have an Account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                <Text style={styles.loginLink}>Signup</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -319,6 +287,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   backgroundImage: {
     position: 'absolute',
@@ -336,109 +305,109 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingTop: height * 0.08,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingTop: 60,
   },
-  logoContainer: {
+  headerContainer: {
     alignItems: 'center',
-    marginTop: height * 0.05,
-    marginBottom: height * 0.03,
+    marginBottom: 40,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 16,
+  logoCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  appName: {
-    fontSize: 42,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    marginBottom: 10,
   },
-  tagline: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  formContainer: {
-    paddingHorizontal: 24,
-  },
-  blurContainer: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 24,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
   },
+  signUpText: {
+    color: '#00FF7F',
+  },
+  formContainer: {
+    width: '100%',
+  },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  inputIcon: {
-    padding: 10,
+  inputLabel: {
+    color: '#FFFFFF',
+    marginBottom: 8,
+    fontSize: 14,
   },
   input: {
-    flex: 1,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
     height: 50,
+    paddingHorizontal: 16,
     color: '#FFFFFF',
-    paddingLeft: 8,
     fontSize: 16,
   },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+  },
+  passwordInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   passwordToggle: {
-    padding: 10,
+    padding: 12,
   },
-  errorText: {
-    color: '#FF6B6B',
-    marginTop: 4,
-    marginLeft: 12,
-    fontSize: 12,
-  },
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
+  rememberContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00FF7F',
+    borderColor: '#00FF7F',
+  },
+  rememberText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+  },
   forgotPasswordText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#2E7D32',
-    borderRadius: 12,
-    height: 56,
+    backgroundColor: '#00FF7F',
+    borderRadius: 8,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: '#000000',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   dividerContainer: {
@@ -449,43 +418,44 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dividerText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255,255,255,0.7)',
     marginHorizontal: 16,
     fontSize: 14,
   },
   socialButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginBottom: 24,
   },
   socialButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    marginHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 8,
   },
-  signupContainer: {
+  bottomTextContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 16,
+    alignItems: 'center',
   },
-  signupText: {
-    color: '#FFFFFF',
+  bottomText: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
-    marginRight: 4,
   },
-  signupLink: {
-    color: '#FFFFFF',
+  loginLink: {
+    color: '#00FF7F',
     fontSize: 14,
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

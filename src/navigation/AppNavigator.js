@@ -20,6 +20,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import SplashScreen from '../screens/SplashScreen';
 import CollectionView from '../screens/CollectionView';
+import OnboardingScreen from '../screens/OnboardingScreen';
 
 // Import new screens
 import AllPopularPlantsScreen from '../screens/AllPopularPlantsScreen';
@@ -144,7 +145,7 @@ const TabBarIcon = ({ route, focused }) => {
       iconSize = 28;
       break;
     case 'SavedTab':
-      iconName = focused ? 'bookmark' : 'bookmark-outline';
+      iconName = focused ? 'heart' : 'heart-outline';
       break;
     case 'ProfileTab':
       iconName = focused ? 'person' : 'person-outline';
@@ -261,6 +262,7 @@ const MainApp = () => {
 const MainNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
   const [showSplash, setShowSplash] = React.useState(true);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = React.useState(false);
 
   React.useEffect(() => {
     // Show splash for minimum 1 second instead of 2 for faster development
@@ -288,8 +290,17 @@ const MainNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
-        // Auth Stack - Login and SignUp screens
+        // Auth Stack - Onboarding, Login and SignUp screens
         <Stack.Group>
+          {!hasSeenOnboarding && (
+            <Stack.Screen 
+              name="Onboarding" 
+              component={OnboardingScreen}
+              listeners={{
+                beforeRemove: () => setHasSeenOnboarding(true),
+              }}
+            />
+          )}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignUpScreen} />
         </Stack.Group>
