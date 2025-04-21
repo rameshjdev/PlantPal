@@ -516,12 +516,6 @@ const PlantListScreen = ({ route }) => {
     );
   };
 
-  // Update the plant item press handler
-  const handlePlantPress = (plant) => {
-    setSelectedPlant(plant);
-    setIsQuickViewVisible(true);
-  };
-
   // Create memo for rendering plant item to improve performance
   const MemoPlantItem = React.memo(({ item, index }) => {
     // Create animated values for staggered entrance
@@ -843,25 +837,195 @@ const PlantListScreen = ({ route }) => {
     return prevProps.item.id === nextProps.item.id;
   });
 
-  const renderPlantItem = ({ item }) => {
-    // Handle different image formats
-    const plantImage = typeof item.image === 'number' ? item.image : 
-                      item.image && item.image.uri ? { uri: item.image.uri } :
-                      typeof item.image === 'string' ? { uri: item.image } :
-                      item.image_url ? { uri: item.image_url } :
-                      require('../../assets/monstera.png');
+  // Add helper functions
+  const getPlantImage = (plant) => {
+    if (plant.image_url) {
+      return { uri: plant.image_url };
+    }
+    if (plant.default_image) {
+      if (plant.default_image.medium_url) {
+        return { uri: plant.default_image.medium_url };
+      } else if (plant.default_image.regular_url) {
+        return { uri: plant.default_image.regular_url };
+      }
+    }
+    if (plant.image) {
+      if (typeof plant.image === 'number') return plant.image;
+      if (plant.image.uri) return { uri: plant.image.uri };
+      if (typeof plant.image === 'string') return { uri: plant.image };
+    }
+    return require('../../assets/monstera.png');
+  };
+
+  const getPlaceholderColor = (plant) => {
+    // Generate a color based on the plant name or ID
+    const seed = (plant.name || plant.id || 'plant').toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Generate pastel-ish colors that are plant-like
+    const hue = Math.abs(hash) % 90 + 70; // Restrict to 70-160 range (greens, blue-greens)
+    const saturation = 60 + Math.abs(hash % 20); // 60-80%
+    const lightness = 75 + Math.abs(hash % 15); // 75-90%
+    
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const getCategoryBadge = (plant) => {
+    // Check for specific plant types
+    if (plant.cycle === 'Perennial') return 'Perennial';
+    if (plant.cycle === 'Annual') return 'Annual';
+    
+    if (plant.watering === 'Minimum' || 
+        (plant.water && plant.water.toLowerCase().includes('minimum'))) {
+      return 'Succulent';
+    }
+    
+    const name = (plant.name || '').toLowerCase();
+    if (name.includes('herb') || 
+        ['basil', 'mint', 'rosemary', 'thyme', 'sage'].some(herb => name.includes(herb))) {
+      return 'Herb';
+    }
+    
+    if (name.includes('palm') || name.includes('monstera') || 
+        name.includes('philodendron') || name.includes('tropical')) {
+      return 'Tropical';
+    }
+    
+    if (plant.sunlight && Array.isArray(plant.sunlight) && 
+        plant.sunlight.some(light => light.includes('full_sun'))) {
+      return 'Outdoor';
+    }
+    
+    // Default to Houseplant
+    return 'Houseplant';
+  };
+
+  const getDisplayName = (name) => {
+    if (!name) return 'Unknown Plant';
+    return name.length > 20 ? name.substring(0, 20) + '...' : name;
+  };
+
+  const getSpeciesName = (species) => {
+    if (!species) return '';
+    return species.length > 25 ? species.substring(0, 25) + '...' : species;
+  };
+
+  const getWaterInfo = (watering) => {
+    if (!watering) return 'Average';
+    return watering;
+  };
+
+  const getLightInfo = (sunlight) => {
+    if (!sunlight || !Array.isArray(sunlight) || sunlight.length === 0) {
+      return 'Medium';
+    }
+    
+    // Return first light requirement
+    const light = sunlight[0].replace(/_/g, ' ');
+    return light.charAt(0).toUpperCase() + light.slice(1);
+  };
+
+  const handleImageError = () => {
+    console.log('Image failed to load');
+  };
+
+  // Keep the correct handlePlantPress function
+  const handlePlantPress = (plant) => {
+    setSelectedPlant(plant);
+    setIsQuickViewVisible(true);
+  };
+
+  const renderPlantItem = ({ item, index }) => {
+    const isFavorite = userPlants.some(p => p.id === item.id);
+    const imageSource = getPlantImage(item);
+    const placeholderColor = getPlaceholderColor(item);
+    const categoryLabel = getCategoryBadge(item);
 
     return (
-      <TouchableOpacity 
-        style={styles.plantItem}
-        onPress={() => navigation.navigate('PlantDetail', { plantId: item.id })}
+      <Animated.View
+        style={[
+          styles.plantItem,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [50, 0],
+                }),
+              },
+            ],
+          },
+        ]}
       >
-        <Image source={plantImage} style={styles.plantImage} />
-        <View style={styles.plantInfo}>
-          <Text style={styles.plantName}>{item.name}</Text>
-          <Text style={styles.plantSpecies}>{item.species || 'Houseplant'}</Text>
-        </View>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.plantCard}
+          onPress={() => handlePlantPress(item)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.imageContainer}>
+            {imageSource ? (
+              <Image
+                source={imageSource}
+                style={styles.plantImage}
+                onError={handleImageError}
+              />
+            ) : (
+              <View style={[styles.placeholderImage, { backgroundColor: placeholderColor }]}>
+                <MaterialCommunityIcons name="leaf" size={40} color="#FFFFFF" />
+              </View>
+            )}
+            
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles.imageGradient}
+            />
+            
+            <View style={styles.cardOverlay}>
+              <View style={styles.categoryContainer}>
+                <Text style={styles.categoryText}>{categoryLabel}</Text>
+              </View>
+              
+              <TouchableOpacity
+                style={styles.favoriteButton}
+                onPress={() => handleToggleFavorite(item.id)}
+              >
+                <MaterialCommunityIcons
+                  name={isFavorite ? 'heart' : 'heart-outline'}
+                  size={24}
+                  color={isFavorite ? '#FF4081' : '#FFFFFF'}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.plantInfo}>
+            <Text style={styles.plantName} numberOfLines={1}>
+              {getDisplayName(item.name)}
+            </Text>
+            {item.species && (
+              <Text style={styles.plantSpecies} numberOfLines={1}>
+                {getSpeciesName(item.species)}
+              </Text>
+            )}
+            
+            <View style={styles.plantDetails}>
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="water-outline" size={16} color="#2196F3" />
+                <Text style={styles.detailText}>{getWaterInfo(item.watering)}</Text>
+              </View>
+              
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="white-balance-sunny" size={16} color="#FF9800" />
+                <Text style={styles.detailText}>{getLightInfo(item.sunlight)}</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -1139,147 +1303,108 @@ const styles = StyleSheet.create({
   plantItem: {
     flex: 1,
     margin: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    height: 280,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   plantCard: {
-    borderRadius: 12,
-    backgroundColor: 'white',
+    flex: 1,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#eee',
-    height: '100%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   imageContainer: {
+    height: 200,
     position: 'relative',
-    width: '100%',
-    height: 160,
-    backgroundColor: '#f9f9f9',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: 'hidden',
   },
   plantImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    resizeMode: 'cover',
   },
   placeholderImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
-  placeholderText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#9e9e9e',
-  },
-  tagIconContainer: {
+  imageGradient: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(29, 150, 79, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.5,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
   },
-  categoryBadge: {
+  cardOverlay: {
     position: 'absolute',
-    top: 10,
-    left: 45, // Adjusted to not overlap with tag icon
-    backgroundColor: 'rgba(79, 30, 124, 0.65)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    zIndex: 2,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  categoryContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   categoryText: {
-    color: 'white',
-    fontSize: 10,
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
   favoriteButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 10,
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
   },
   plantInfo: {
-    padding: 12,
+    padding: 16,
   },
   plantName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333333',
+    marginBottom: 4,
   },
   plantSpecies: {
-    fontSize: 12,
+    fontSize: 14,
+    color: '#666666',
     fontStyle: 'italic',
-    color: '#666',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  plantDetailsContainer: {
-    marginTop: 8,
-  },
-  plantDetailRow: {
+  plantDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  plantDetailItem: {
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
-    marginRight: 6,
   },
-  plantDetailText: {
+  detailText: {
     fontSize: 12,
-    color: '#666',
+    color: '#666666',
     marginLeft: 4,
   },
   warningBanner: {
@@ -1426,6 +1551,39 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(112, 25, 83, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  tagIconContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(29, 150, 79, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.5,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 45, // Adjusted to not overlap with tag icon
+    backgroundColor: 'rgba(79, 30, 124, 0.65)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    zIndex: 2,
   },
 });
 

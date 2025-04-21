@@ -11,17 +11,20 @@ import {
   ActivityIndicator, 
   TextInput,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
-import { signOut, uploadProfileImage, updateUserProfile } from '../services/supabaseService';
-import * as ImagePicker from 'expo-image-picker';
 import { useSelector } from 'react-redux';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
+
+import { useAuth } from '../context/AuthContext';
+import { signOut, uploadProfileImage, updateUserProfile } from '../services/supabaseService';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -309,223 +312,217 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <Image source={userData.avatar} style={styles.avatar} />
-            <View style={styles.avatarOverlay}>
-              <Text style={styles.avatarInitial}>{userData.name.charAt(0)}</Text>
-            </View>
-            {isUploading ? (
-              <View style={styles.uploadingOverlay}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.editAvatarButton} onPress={showProfilePhotoOptions}>
-                <Ionicons name="camera" size={20} color="#FFFFFF" />
+      <StatusBar barStyle="light-content" />
+      <View style={[styles.backgroundGradient, { backgroundColor: '#1A1A1A' }]}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Profile Header */}
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <Image source={userData.avatar} style={styles.avatar} />
+              <View style={[styles.avatarGradient, { backgroundColor: 'rgba(0,0,0,0.7)' }]} />
+              <TouchableOpacity 
+                style={styles.editAvatarButton} 
+                onPress={showProfilePhotoOptions}
+              >
+                <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-            )}
-          </View>
-          
-          {isEditing ? (
-            <View style={styles.editForm}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editedName}
-                  onChangeText={setEditedName}
-                  placeholder="Enter your full name"
-                  placeholderTextColor="#999"
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editedEmail}
-                  onChangeText={setEditedEmail}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#999"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-              <View style={styles.editActions}>
-                <TouchableOpacity 
-                  style={[styles.editButton, styles.cancelButton]} 
-                  onPress={() => setIsEditing(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.editButton, styles.saveButton]} 
-                  onPress={handleEditProfile}
-                >
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          ) : (
-            <>
-              <Text style={styles.userName}>{userData.name}</Text>
-              <Text style={styles.userEmail}>{userData.email}</Text>
-            </>
-          )}
-          
+            
+            <View style={styles.userInfo}>
+              {isEditing ? (
+                <>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editedName}
+                    onChangeText={setEditedName}
+                    placeholder="Enter your name"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  />
+                  <TextInput
+                    style={styles.editInput}
+                    value={editedEmail}
+                    onChangeText={setEditedEmail}
+                    placeholder="Enter your email"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.userName}>{userData.name}</Text>
+                  <Text style={styles.userEmail}>{userData.email}</Text>
+                </>
+              )}
+              <Text style={styles.joinDate}>Member since {userData.joinDate}</Text>
+            </View>
+          </View>
+
+          {/* Stats Cards */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
-                <Ionicons name="leaf-outline" size={24} color="#4CAF50" />
+                <MaterialCommunityIcons name="leaf" size={24} color="#4CAF50" />
               </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statValue}>{userData.plantsCount}</Text>
-                <Text style={styles.statLabel}>Collection</Text>
-              </View>
+              <Text style={styles.statValue}>{userData.plantsCount}</Text>
+              <Text style={styles.statLabel}>Plants</Text>
             </View>
             
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
-                <Ionicons name="heart-outline" size={24} color="#4CAF50" />
+                <MaterialCommunityIcons name="heart" size={24} color="#FF4081" />
               </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statValue}>{userData.favoritesCount}</Text>
-                <Text style={styles.statLabel}>Favorites</Text>
-              </View>
+              <Text style={styles.statValue}>{userData.favoritesCount}</Text>
+              <Text style={styles.statLabel}>Favorites</Text>
             </View>
             
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
-                <Ionicons name="calendar-outline" size={24} color="#4CAF50" />
+                <MaterialCommunityIcons name="star" size={24} color="#FFC107" />
               </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statValue}>{userData.joinDate}</Text>
-                <Text style={styles.statLabel}>Joined</Text>
+              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statLabel}>Achievements</Text>
+            </View>
+          </View>
+
+          {/* Settings Sections */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionTitle}>Preferences</Text>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingIconContainer}>
+                <MaterialCommunityIcons name="bell" size={24} color="#4CAF50" />
               </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Notifications</Text>
-              <Text style={styles.settingDescription}>Enable push notifications for all alerts</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={(value) => handleSettingChange('notifications', value)}
-              trackColor={{ false: '#E0E0E0', true: '#AED581' }}
-              thumbColor={notificationsEnabled ? '#4CAF50' : '#BDBDBD'}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Location Services</Text>
-              <Text style={styles.settingDescription}>Enable for weather and plant care recommendations</Text>
-            </View>
-            <Switch
-              value={locationEnabled}
-              onValueChange={(value) => handleSettingChange('location', value)}
-              trackColor={{ false: '#E0E0E0', true: '#AED581' }}
-              thumbColor={locationEnabled ? '#4CAF50' : '#BDBDBD'}
-            />
-          </View>
-        </View>
-
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Reminder Settings</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Watering Reminders</Text>
-              <Text style={styles.settingDescription}>Get notified when your plants need water</Text>
-            </View>
-            <Switch
-              value={wateringReminders}
-              onValueChange={(value) => handleSettingChange('watering', value)}
-              trackColor={{ false: '#E0E0E0', true: '#AED581' }}
-              thumbColor={wateringReminders ? '#4CAF50' : '#BDBDBD'}
-              disabled={!notificationsEnabled}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Fertilizing Reminders</Text>
-              <Text style={styles.settingDescription}>Get notified when your plants need fertilizer</Text>
-            </View>
-            <Switch
-              value={fertilizingReminders}
-              onValueChange={(value) => handleSettingChange('fertilizing', value)}
-              trackColor={{ false: '#E0E0E0', true: '#AED581' }}
-              thumbColor={fertilizingReminders ? '#4CAF50' : '#BDBDBD'}
-              disabled={!notificationsEnabled}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Weather Alerts</Text>
-              <Text style={styles.settingDescription}>Get notified about weather affecting your plants</Text>
-            </View>
-            <Switch
-              value={weatherAlerts}
-              onValueChange={(value) => handleSettingChange('weather', value)}
-              trackColor={{ false: '#E0E0E0', true: '#AED581' }}
-              thumbColor={weatherAlerts ? '#4CAF50' : '#BDBDBD'}
-              disabled={!locationEnabled}
-            />
-          </View>
-        </View>
-
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity style={styles.accountOption} onPress={handleEditProfile}>
-            <Text style={styles.accountOptionText}>
-              {isEditing ? 'Save Profile' : 'Edit Profile'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.accountOption} onPress={handleLogout} disabled={isLoggingOut}>
-            {isLoggingOut ? (
-              <View style={styles.logoutButtonContent}>
-                <ActivityIndicator size="small" color="#E53935" />
-                <Text style={[styles.accountOptionText, styles.logoutText, styles.logoutLoading]}>Logging out...</Text>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Notifications</Text>
+                <Text style={styles.settingDescription}>Get updates about your plants</Text>
               </View>
-            ) : (
-              <Text style={[styles.accountOptionText, styles.logoutText]}>Logout</Text>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={(value) => handleSettingChange('notifications', value)}
+                trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+                thumbColor={notificationsEnabled ? '#FFFFFF' : '#BDBDBD'}
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <View style={styles.settingIconContainer}>
+                <MaterialCommunityIcons name="map-marker" size={24} color="#2196F3" />
+              </View>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Location</Text>
+                <Text style={styles.settingDescription}>Enable for weather updates</Text>
+              </View>
+              <Switch
+                value={locationEnabled}
+                onValueChange={(value) => handleSettingChange('location', value)}
+                trackColor={{ false: '#E0E0E0', true: '#2196F3' }}
+                thumbColor={locationEnabled ? '#FFFFFF' : '#BDBDBD'}
+              />
+            </View>
+          </View>
+
+          {/* Reminders Section */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionTitle}>Reminders</Text>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingIconContainer}>
+                <MaterialCommunityIcons name="water" size={24} color="#00BCD4" />
+              </View>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Watering</Text>
+                <Text style={styles.settingDescription}>Get watering reminders</Text>
+              </View>
+              <Switch
+                value={wateringReminders}
+                onValueChange={(value) => handleSettingChange('watering', value)}
+                trackColor={{ false: '#E0E0E0', true: '#00BCD4' }}
+                thumbColor={wateringReminders ? '#FFFFFF' : '#BDBDBD'}
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <View style={styles.settingIconContainer}>
+                <MaterialCommunityIcons name="leaf" size={24} color="#8BC34A" />
+              </View>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Fertilizing</Text>
+                <Text style={styles.settingDescription}>Get fertilizing reminders</Text>
+              </View>
+              <Switch
+                value={fertilizingReminders}
+                onValueChange={(value) => handleSettingChange('fertilizing', value)}
+                trackColor={{ false: '#E0E0E0', true: '#8BC34A' }}
+                thumbColor={fertilizingReminders ? '#FFFFFF' : '#BDBDBD'}
+              />
+            </View>
+          </View>
+
+          {/* Account Actions */}
+          <View style={styles.actionsSection}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleEditProfile}
+            >
+              <MaterialCommunityIcons 
+                name={isEditing ? "check" : "account-edit"} 
+                size={24} 
+                color="#FFFFFF" 
+              />
+              <Text style={styles.actionButtonText}>
+                {isEditing ? "Save Changes" : "Edit Profile"}
+              </Text>
+            </TouchableOpacity>
+            
+            {isEditing && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => {
+                  setIsEditing(false);
+                  setEditedName(userData.name);
+                  setEditedEmail(userData.email);
+                }}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>Cancel</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </View>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.logoutButton]}
+              onPress={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="logout" size={24} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>Logout</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>PlantPal v1.0.0</Text>
-          <TouchableOpacity>
-            <Text style={styles.appLink}>Terms of Service</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.appLink}>Privacy Policy</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {/* App Info */}
+          <View style={styles.appInfo}>
+            <Text style={styles.appVersion}>PlantPal v1.0.0</Text>
+            <View style={styles.appLinks}>
+              <TouchableOpacity>
+                <Text style={styles.appLink}>Terms of Service</Text>
+              </TouchableOpacity>
+              <TouchableOpacity>
+                <Text style={styles.appLink}>Privacy Policy</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -534,6 +531,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  backgroundGradient: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -552,39 +552,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#00FF7F',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#1A1A1A',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  placeholder: {
-    width: 40,
-  },
-  profileSection: {
+  profileHeader: {
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#1A1A1A',
     marginBottom: 16,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
   },
   avatarContainer: {
     position: 'relative',
@@ -592,38 +563,38 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: '#000000',
+    borderColor: '#4CAF50',
   },
-  avatarOverlay: {
+  avatarGradient: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    height: 60,
     borderRadius: 60,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitial: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#00FF7F',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
   editAvatarButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#00FF7F',
+    backgroundColor: '#4CAF50',
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -632,194 +603,174 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#000000',
   },
-  uploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 60,
-    justifyContent: 'center',
+  userInfo: {
     alignItems: 'center',
   },
   userName: {
     fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
     color: '#FFFFFF',
+    marginBottom: 4,
   },
   userEmail: {
-    fontSize: 15,
+    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 20,
+    marginBottom: 4,
+  },
+  joinDate: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 20,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#000000',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
     padding: 16,
     marginHorizontal: 4,
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   statIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  statTextContainer: {
-    alignItems: 'center',
-  },
   statValue: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
   },
   settingsSection: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginHorizontal: 24,
+    marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
+    marginBottom: 20,
   },
   settingItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
   settingTextContainer: {
     flex: 1,
-    marginRight: 16,
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   settingDescription: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 18,
   },
-  accountOption: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  actionsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
-  accountOptionText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  logoutText: {
-    color: '#FF453A',
-    fontWeight: '500',
-  },
-  logoutButtonContent: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  logoutLoading: {
+  logoutButton: {
+    backgroundColor: '#F44336',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginLeft: 8,
-    opacity: 0.7,
   },
   appInfo: {
     alignItems: 'center',
     padding: 24,
-    marginBottom: 20,
   },
   appVersion: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 12,
+  },
+  appLinks: {
+    flexDirection: 'row',
   },
   appLink: {
     fontSize: 14,
-    color: '#00FF7F',
-    marginVertical: 6,
+    color: '#4CAF50',
+    marginHorizontal: 12,
     textDecorationLine: 'underline',
   },
-  editForm: {
+  editInput: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#4CAF50',
+    paddingVertical: 4,
     width: '100%',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    color: '#FFFFFF',
-  },
-  editActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  editButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 8,
+    textAlign: 'center',
   },
   cancelButton: {
-    backgroundColor: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  saveButton: {
-    backgroundColor: '#00FF7F',
-  },
-  cancelButtonText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  saveButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '500',
+    backgroundColor: '#FF9800',
   },
 });
 

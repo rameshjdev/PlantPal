@@ -148,22 +148,21 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
   const getPlantImage = () => {
     if (!plant) return null;
     
-    // First try to get the image from the plant object
-    if (plant.image) {
-      if (typeof plant.image === 'string') {
-        return { uri: plant.image };
-      }
-      if (plant.image.uri) {
-        return { uri: plant.image.uri };
-      }
+    if (plant.default_image && plant.default_image.medium_url) {
+      return { uri: plant.default_image.medium_url };
     }
     
-    // If no image is found, return null
+    if (typeof plant.image === 'number') return plant.image;
+    if (plant.image && plant.image.uri) return { uri: plant.image.uri };
+    if (typeof plant.image === 'string') return { uri: plant.image };
+    if (plant.image_url) return { uri: plant.image_url };
+    
     return null;
   };
   
   const plantImage = getPlantImage();
   const hasValidImage = !!plantImage;
+
   
   return (
     <TouchableOpacity 
@@ -177,6 +176,7 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
             source={plantImage} 
             style={styles.userPlantImage} 
             resizeMode="cover"
+            onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
           />
         ) : (
           <View style={[styles.userPlantImage, styles.plantPlaceholder]}>
@@ -229,12 +229,13 @@ const CategoryCard = ({ category }) => {
   
   return (
     <TouchableOpacity
-      style={styles.categoryCard}
+      style={[styles.categoryCard, { borderColor: `${categoryColor}20` }]}
       onPress={() => navigation.navigate('CollectionView', { 
         filter: 'category',
         categoryName: category.name,
         showAllPlants: true
       })}
+      activeOpacity={0.8}
     >
       <View style={[styles.categoryImageContainer, { backgroundColor: `${categoryColor}10` }]}>
         {category.image ? (
@@ -243,7 +244,7 @@ const CategoryCard = ({ category }) => {
             style={styles.categoryImage}
           />
         ) : (
-          <View style={styles.categoryIconContainer}>
+          <View style={[styles.categoryIconContainer, { backgroundColor: `${categoryColor}15` }]}>
             <Ionicons name="leaf" size={32} color={categoryColor} />
           </View>
         )}
@@ -1025,17 +1026,18 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   categoryCard: {
-    width: 140,
-    height: 200,
+    width: 160,
+    height: 220,
     marginRight: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 8,
       },
       android: {
@@ -1059,7 +1061,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -1082,18 +1083,17 @@ const styles = StyleSheet.create({
     height: '50%',
   },
   categoryInfo: {
-    padding: 12,
-    backgroundColor: 'white',
+    padding: 16,
+    backgroundColor: '#1A1A1A',
   },
   categoryName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
     marginBottom: 8,
   },
   categoryCountContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },

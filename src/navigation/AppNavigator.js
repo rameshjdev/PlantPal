@@ -163,6 +163,10 @@ const TabBarIcon = ({ route, focused }) => {
 
 // Main tab navigator
 const TabNavigator = () => {
+/**
+ * Displays an alert dialog with a message about the plant screening feature coming soon.
+ * @function
+ */
   const handleScanPress = () => {
     Alert.alert(
       'Coming Soon!',

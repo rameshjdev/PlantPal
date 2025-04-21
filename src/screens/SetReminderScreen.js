@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Switch, ScrollView, Platform, Alert, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Switch, ScrollView, Platform, Alert, TextInput, Modal, KeyboardAvoidingView, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { addReminder, updateReminder } from '../store/remindersSlice';
@@ -7,6 +7,7 @@ import { schedulePlantCareReminder, cancelNotification } from '../services/notif
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { nanoid } from '@reduxjs/toolkit';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SetReminderScreen = () => {
   const navigation = useNavigation();
@@ -36,6 +37,15 @@ const SetReminderScreen = () => {
   const [preferredTime, setPreferredTime] = useState('morning'); // morning, afternoon, evening
   const [notes, setNotes] = useState('');
   const [enabled, setEnabled] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [minDate] = useState(new Date()); // Today's date as minimum
+  const [maxDate] = useState(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1); // One year from now as maximum
+    return date;
+  });
+  const [dateError, setDateError] = useState('');
   
   // Load existing reminder data if editing
   useEffect(() => {
@@ -54,8 +64,34 @@ const SetReminderScreen = () => {
   // Get selected plant details
   const selectedPlant = plants.find(p => p.id === selectedPlantId);
   
+  // Add date validation function
+  const validateDate = (date) => {
+    if (!date) {
+      setDateError('Please select a valid date');
+      return false;
+    }
+
+    if (date < minDate) {
+      setDateError('Date cannot be in the past');
+      return false;
+    }
+
+    if (date > maxDate) {
+      setDateError('Date cannot be more than one year in the future');
+      return false;
+    }
+
+    setDateError('');
+    return true;
+  };
+  
   // Save reminder with proper next due date calculation
   const handleSaveReminder = () => {
+    if (!validateDate(selectedDate)) {
+      Alert.alert('Invalid Date', dateError);
+      return;
+    }
+
     // Validate form
     if (!selectedPlantId) {
       Alert.alert('Error', 'Please select a plant');
@@ -197,6 +233,18 @@ const SetReminderScreen = () => {
     navigation.goBack();
   };
   
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(false);
+    if (date) {
+      if (validateDate(date)) {
+        setSelectedDate(date);
+        setStartDate(date.toISOString().split('T')[0]);
+      } else {
+        Alert.alert('Invalid Date', dateError);
+      }
+    }
+  };
+  
   const renderPlantSelector = () => (
     <View style={styles.formGroup}>
       <Text style={styles.formLabel}>Select Plant</Text>
@@ -214,12 +262,22 @@ const SetReminderScreen = () => {
             ]}
             onPress={() => setSelectedPlantId(plant.id)}
           >
-            <View style={styles.plantCircle}>
-              <Ionicons 
-                name="leaf-outline" 
-                size={24} 
-                color={selectedPlantId === plant.id ? '#FFFFFF' : '#4CAF50'} 
-              />
+            <View style={[
+              styles.plantCircle,
+              selectedPlantId === plant.id && styles.selectedPlantCircle
+            ]}>
+              {plant.image_url ? (
+                <Image 
+                  source={{ uri: plant.image_url }} 
+                  style={styles.plantImage}
+                />
+              ) : (
+                <Ionicons 
+                  name="leaf-outline" 
+                  size={32} 
+                  color={selectedPlantId === plant.id ? '#FFFFFF' : '#4CAF50'} 
+                />
+              )}
             </View>
             <Text style={[
               styles.plantName,
@@ -374,11 +432,28 @@ const SetReminderScreen = () => {
   const renderDateInput = () => (
     <View style={styles.formGroup}>
       <Text style={styles.formLabel}>Start Date</Text>
-      <TouchableOpacity style={styles.dateInput}>
+      <TouchableOpacity 
+        style={[
+          styles.dateInput,
+          dateError ? styles.dateInputError : null
+        ]}
+        onPress={() => setShowDatePicker(true)}
+      >
         <Text style={styles.dateText}>{startDate}</Text>
         <Ionicons name="calendar-outline" size={20} color="#666" />
       </TouchableOpacity>
-      <Text style={styles.helperText}>Tap to select a date (not implemented in this demo)</Text>
+      {dateError ? <Text style={styles.errorText}>{dateError}</Text> : null}
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          minimumDate={minDate}
+          maximumDate={maxDate}
+          style={styles.datePicker}
+        />
+      )}
     </View>
   );
   
@@ -507,43 +582,53 @@ const SetReminderScreen = () => {
   
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{isEditing ? 'Edit Reminder' : 'New Reminder'}</Text>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={handleSaveReminder}
-        >
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.formContainer}>
-          {renderPlantSelector()}
-          {renderReminderTypeSelector()}
-          {renderFrequencySelector()}
-          {renderDateInput()}
-          {renderPreferredDaySelector()}
-          {renderPreferredTimeSelector()}
-          {renderNotesInput()}
-          {renderEnabledToggle()}
-          
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <View style={styles.header}>
           <TouchableOpacity 
-            style={styles.saveButtonLarge}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.title}>{isEditing ? 'Edit Reminder' : 'New Reminder'}</Text>
+          <TouchableOpacity 
+            style={styles.saveButton}
             onPress={handleSaveReminder}
           >
-            <Text style={styles.saveButtonLargeText}>
-              {isEditing ? 'Update Reminder' : 'Create Reminder'}
-            </Text>
+            <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formContainer}>
+            {renderPlantSelector()}
+            {renderReminderTypeSelector()}
+            {renderFrequencySelector()}
+            {renderDateInput()}
+            {renderPreferredDaySelector()}
+            {renderPreferredTimeSelector()}
+            {renderNotesInput()}
+            {renderEnabledToggle()}
+            
+            <TouchableOpacity 
+              style={styles.saveButtonLarge}
+              onPress={handleSaveReminder}
+            >
+              <Text style={styles.saveButtonLargeText}>
+                {isEditing ? 'Update Reminder' : 'Create Reminder'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -551,15 +636,32 @@ const SetReminderScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FFF8',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   backButton: {
     width: 40,
@@ -567,62 +669,89 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
   },
   saveButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#4CAF50',
   },
   saveButtonText: {
-    color: '#4CAF50',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
   },
   formContainer: {
     padding: 16,
   },
   formGroup: {
     marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   formLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
     marginBottom: 12,
   },
   plantSelectorContainer: {
-    paddingBottom: 8,
+    paddingVertical: 8,
+    paddingRight: 16,
   },
   plantItem: {
     alignItems: 'center',
     marginRight: 16,
-    width: 70,
+    width: 100,
   },
   selectedPlantItem: {
     opacity: 1,
   },
   plantCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
     borderWidth: 2,
     borderColor: 'transparent',
+    overflow: 'hidden',
   },
   selectedPlantCircle: {
     borderColor: '#4CAF50',
     backgroundColor: '#4CAF50',
+  },
+  plantImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   plantName: {
     fontSize: 14,
@@ -631,7 +760,7 @@ const styles = StyleSheet.create({
   },
   selectedPlantName: {
     color: '#4CAF50',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   optionsContainer: {
     flexDirection: 'row',
@@ -642,11 +771,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
     marginHorizontal: 4,
     marginBottom: 8,
+    minWidth: 100,
   },
   selectedOptionButton: {
     backgroundColor: '#4CAF50',
@@ -658,7 +788,7 @@ const styles = StyleSheet.create({
   },
   selectedOptionText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   dateInput: {
     flexDirection: 'row',
@@ -699,7 +829,7 @@ const styles = StyleSheet.create({
   },
   selectedDayText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   timeContainer: {
     flexDirection: 'row',
@@ -725,7 +855,7 @@ const styles = StyleSheet.create({
   },
   selectedTimeText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   notesInput: {
     paddingHorizontal: 16,
@@ -734,6 +864,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     minHeight: 100,
     textAlignVertical: 'top',
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 16,
   },
   enabledContainer: {
     flexDirection: 'row',
@@ -746,7 +879,7 @@ const styles = StyleSheet.create({
   },
   enabledText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
   },
   saveButtonLarge: {
@@ -755,11 +888,36 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   saveButtonLargeText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  dateInputError: {
+    borderColor: '#FF3B30',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 8,
+  },
+  datePicker: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
   },
 });
 

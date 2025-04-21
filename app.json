@@ -39,7 +39,8 @@
         {
           "cameraPermission": "Allow PlantPal to access your camera to identify plants."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

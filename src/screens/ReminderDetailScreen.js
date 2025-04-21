@@ -9,6 +9,8 @@ import {
   StatusBar,
   Switch,
   Alert,
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -40,6 +42,9 @@ const ReminderDetailScreen = () => {
   const isPast = reminder?.nextDue < today;
   const isUpcoming = reminder?.nextDue > today;
   
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   if (!reminder) {
     return (
       <SafeAreaView style={styles.container}>
@@ -103,6 +108,68 @@ const ReminderDetailScreen = () => {
     );
   };
 
+  const getPlantImage = () => {
+    if (!plant) return null;
+    
+    if (plant.default_image && plant.default_image.medium_url) {
+      return { uri: plant.default_image.medium_url };
+    }
+    
+    if (typeof plant.image === 'number') return plant.image;
+    if (plant.image && plant.image.uri) return { uri: plant.image.uri };
+    if (typeof plant.image === 'string') return { uri: plant.image };
+    if (plant.image_url) return { uri: plant.image_url };
+    
+    return null;
+  };
+
+  const renderBanner = () => {
+    const plantImage = getPlantImage();
+    const hasImage = !!plantImage;
+
+    return (
+      <View style={styles.banner}>
+        {hasImage ? (
+          <Image 
+            source={plantImage}
+            style={styles.bannerImage}
+            onLoadStart={() => setImageLoading(true)}
+            onLoadEnd={() => setImageLoading(false)}
+            onError={() => {
+              setImageError(true);
+              setImageLoading(false);
+            }}
+          />
+        ) : (
+          <View style={[styles.bannerImage, styles.bannerPlaceholder]}>
+            <Ionicons name="leaf-outline" size={48} color="#4CAF50" />
+          </View>
+        )}
+        {imageLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+          </View>
+        )}
+        <View style={styles.bannerOverlay} />
+        <View style={styles.bannerContent}>
+          <Text style={styles.reminderType}>
+            {reminder.type.charAt(0).toUpperCase() + reminder.type.slice(1)} Reminder
+          </Text>
+          <Text style={styles.reminderTitle}>
+            {reminder.type === 'watering' 
+              ? `Water your ${reminder.plantName}` 
+              : reminder.type === 'fertilizing'
+                ? `Fertilize your ${reminder.plantName}`
+                : reminder.type === 'pruning'
+                  ? `Prune your ${reminder.plantName}`
+                  : `Check your ${reminder.plantName}`
+            }
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -117,37 +184,15 @@ const ReminderDetailScreen = () => {
         <TouchableOpacity 
           style={styles.editButton}
           onPress={() => navigation.navigate('SetReminder', { 
-            reminderToEdit: reminder
+            reminderId: reminder.id
           })}
         >
-          <Ionicons name="pencil" size={20} color="#000" />
+          <Ionicons name="pencil" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        {/* Banner with plant image */}
-        <View style={styles.banner}>
-          <Image 
-            source={{ uri: plant?.image || 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=200' }} 
-            style={styles.bannerImage} 
-          />
-          <View style={styles.bannerOverlay} />
-          <View style={styles.bannerContent}>
-            <Text style={styles.reminderType}>
-              {reminder.type.charAt(0).toUpperCase() + reminder.type.slice(1)} Reminder
-            </Text>
-            <Text style={styles.reminderTitle}>
-              {reminder.type === 'watering' 
-                ? `Water your ${reminder.plantName}` 
-                : reminder.type === 'fertilizing'
-                  ? `Fertilize your ${reminder.plantName}`
-                  : reminder.type === 'pruning'
-                    ? `Prune your ${reminder.plantName}`
-                    : `Check your ${reminder.plantName}`
-              }
-            </Text>
-          </View>
-        </View>
+        {renderBanner()}
         
         {/* Reminder Info */}
         <View style={styles.infoContainer}>
@@ -239,10 +284,10 @@ const ReminderDetailScreen = () => {
             </View>
           )}
           
-          <View style={styles.divider} />
+          {/* <View style={styles.divider} /> */}
           
           {/* Plant Info - if plant exists */}
-          {plant && (
+          {/* {plant && (
             <TouchableOpacity 
               style={styles.plantContainer}
               onPress={() => navigation.navigate('PlantDetail', { plantId: plant.id })}
@@ -257,9 +302,9 @@ const ReminderDetailScreen = () => {
               </View>
               <Ionicons name="chevron-forward" size={24} color="#999" />
             </TouchableOpacity>
-          )}
+          )} */}
           
-          <View style={styles.divider} />
+          {/* <View style={styles.divider} /> */}
           
           {/* Actions */}
           <View style={styles.actionsContainer}>
@@ -300,23 +345,29 @@ const ReminderDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FFF8',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    paddingTop: 8,
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   backButton: {
     width: 40,
@@ -337,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#4CAF50',
   },
   placeholder: {
     width: 40,
@@ -349,14 +400,33 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   banner: {
-    height: 220,
+    height: 280,
     position: 'relative',
-    marginBottom: 16,
+    marginBottom: 24,
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
   },
   bannerImage: {
     width: '100%',
-    height: 220,
+    height: 280,
     resizeMode: 'cover',
+  },
+  bannerPlaceholder: {
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bannerOverlay: {
     position: 'absolute',
@@ -364,50 +434,60 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   bannerContent: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 32,
     left: 24,
     right: 24,
   },
   reminderType: {
     color: '#FFFFFF',
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 12,
     backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   reminderTitle: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '700',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
-    lineHeight: 34,
+    lineHeight: 38,
   },
   infoContainer: {
     padding: 24,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
     marginHorizontal: 16,
-    marginTop: -20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: -32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   infoItem: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 24,
     alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
   },
   infoTextContainer: {
     marginLeft: 16,
@@ -417,10 +497,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 4,
+    fontWeight: '500',
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#333',
   },
   todayText: {
@@ -428,7 +509,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   overdueText: {
-    color: '#F44336',
+    color: '#FF5252',
     fontWeight: '600',
   },
   upcomingText: {
@@ -471,59 +552,78 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     marginTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
   enableContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 12,
+    marginBottom: 24,
+    padding: 16,
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   enableLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#333',
   },
   completeButton: {
     backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 16,
+    marginTop: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   completeButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 16,
     marginLeft: 8,
+    letterSpacing: 0.5,
   },
   deleteButton: {
-    backgroundColor: '#F44336',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: '#FF5252',
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    shadowColor: '#F44336',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FF5252',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   deleteButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 16,
     marginLeft: 8,
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     flex: 1,
@@ -542,14 +642,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
   },
