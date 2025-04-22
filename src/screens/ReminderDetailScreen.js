@@ -172,7 +172,7 @@ const ReminderDetailScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -345,7 +345,7 @@ const ReminderDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FFF8',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -354,18 +354,18 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
@@ -375,12 +375,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   editButton: {
     width: 40,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
   },
   placeholder: {
     width: 40,
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     height: 280,
     position: 'relative',
     marginBottom: 24,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#1A1A1A',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     overflow: 'hidden',
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   bannerPlaceholder: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   bannerContent: {
     position: 'absolute',
@@ -446,26 +447,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginBottom: 12,
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
     fontWeight: '600',
     letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   reminderTitle: {
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: '700',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
     lineHeight: 38,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   infoContainer: {
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 24,
     marginHorizontal: 16,
     marginTop: -32,
@@ -473,7 +476,7 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.3,
         shadowRadius: 12,
       },
       android: {
@@ -486,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
   },
   infoTextContainer: {
@@ -495,17 +498,19 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
     fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   infoValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   todayText: {
-    color: '#4CAF50',
+    color: '#00FF7F',
     fontWeight: '600',
   },
   overdueText: {
@@ -518,13 +523,13 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginVertical: 20,
   },
   plantContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -534,7 +539,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 2,
-    borderColor: '#4CAF50',
+    borderColor: '#00FF7F',
     marginRight: 16,
   },
   plantInfo: {
@@ -543,12 +548,14 @@ const styles = StyleSheet.create({
   plantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   plantSpecies: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   actionsContainer: {
     marginTop: 8,
@@ -561,18 +568,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   enableLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   completeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -582,7 +590,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     ...Platform.select({
       ios: {
-        shadowColor: '#4CAF50',
+        shadowColor: '#00FF7F',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -593,14 +601,15 @@ const styles = StyleSheet.create({
     }),
   },
   completeButtonText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 8,
     letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   deleteButton: {
-    backgroundColor: '#FF5252',
+    backgroundColor: 'rgba(255, 82, 82, 0.2)',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -619,11 +628,12 @@ const styles = StyleSheet.create({
     }),
   },
   deleteButtonText: {
-    color: '#FFFFFF',
+    color: '#FF5252',
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 8,
     letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   emptyContainer: {
     flex: 1,
@@ -634,30 +644,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
     ...Platform.select({
       ios: {
-        shadowColor: '#4CAF50',
+        shadowColor: '#00FF7F',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.3,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontWeight: '600',
     fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
 });
 

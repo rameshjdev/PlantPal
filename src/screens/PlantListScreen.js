@@ -372,7 +372,7 @@ const PlantListScreen = ({ route }) => {
     if (loading && hasMore) {
       return (
         <View style={styles.footerContainer}>
-          <ActivityIndicator size="small" color="#2E7D32" />
+          <ActivityIndicator size="small" color="#00FF7F" />
           <Text style={styles.footerText}>Loading more plants...</Text>
         </View>
       );
@@ -386,7 +386,7 @@ const PlantListScreen = ({ route }) => {
     } else if (filteredPlants.length === 0 && !loading) {
       return (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="sprout" size={50} color="#BDBDBD" />
+          <MaterialCommunityIcons name="sprout" size={50} color="rgba(255, 255, 255, 0.7)" />
           <Text style={styles.emptyText}>
             {searchQuery.trim() !== '' 
               ? `No plants found for "${searchQuery}"`
@@ -478,7 +478,7 @@ const PlantListScreen = ({ route }) => {
                   
                   <View style={styles.quickViewDetails}>
                     <View style={styles.quickViewDetailItem}>
-                      <MaterialCommunityIcons name="water-outline" size={20} color="#2196F3" />
+                      <MaterialCommunityIcons name="water-outline" size={20} color="#00FF7F" />
                       <Text style={styles.quickViewDetailText}>
                         {plant.watering || 'Average'}
                       </Text>
@@ -783,7 +783,7 @@ const PlantListScreen = ({ route }) => {
               
               {/* Tag Icon */}
               <View style={styles.tagIconContainer}>
-                <MaterialCommunityIcons name="tag" size={16} color="#4CAF59" />
+                <MaterialCommunityIcons name="tag" size={16} color="#00FF7F" />
               </View>
               
               {/* Category Badge */}
@@ -817,7 +817,7 @@ const PlantListScreen = ({ route }) => {
               <View style={styles.plantDetailsContainer}>
                 <View style={styles.plantDetailRow}>
                   <View style={styles.plantDetailItem}>
-                    <MaterialCommunityIcons name="water-outline" size={16} color="#2196F3" />
+                    <MaterialCommunityIcons name="water-outline" size={16} color="#00FF7F" />
                     <Text style={styles.plantDetailText}>{getWaterInfo(item.watering)}</Text>
                   </View>
                   
@@ -1014,7 +1014,7 @@ const PlantListScreen = ({ route }) => {
             
             <View style={styles.plantDetails}>
               <View style={styles.detailItem}>
-                <MaterialCommunityIcons name="water-outline" size={16} color="#2196F3" />
+                <MaterialCommunityIcons name="water-outline" size={16} color="#00FF7F" />
                 <Text style={styles.detailText}>{getWaterInfo(item.watering)}</Text>
               </View>
               
@@ -1036,14 +1036,14 @@ const PlantListScreen = ({ route }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#2E7D32" />
+          <MaterialCommunityIcons name="chevron-left" size={28} color="#00FF7F" />
         </TouchableOpacity>
         <Text style={styles.title}>{category}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <View style={styles.searchContainer}>
-        <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
+        <MaterialCommunityIcons name="magnify" size={20} color="#00FF7F" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search plants..."
@@ -1088,7 +1088,7 @@ const PlantListScreen = ({ route }) => {
         ListEmptyComponent={
           !loading && !error ? (
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="sprout" size={70} color="#BDBDBD" />
+              <MaterialCommunityIcons name="sprout" size={70} color="rgba(255, 255, 255, 0.7)" />
               <Text style={styles.emptyText}>
                 {searchQuery.trim() !== '' 
                   ? `No plants found for "${searchQuery}"`
@@ -1119,7 +1119,7 @@ const PlantListScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -1128,19 +1128,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
+    backgroundColor: '#1A1A1A',
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   placeholder: {
     width: 40,
@@ -1153,22 +1155,26 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   searchIcon: {
     marginRight: 8,
+    color: '#00FF7F',
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: '#FFFFFF',
     padding: 0,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1176,7 +1182,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#00FF7F',
     borderRadius: 10,
     width: 18,
     height: 18,
@@ -1184,18 +1190,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterBadgeText: {
-    color: 'white',
+    color: '#000000',
     fontSize: 10,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     overflow: 'hidden',
     minHeight: '60%',
@@ -1208,12 +1215,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   closeButton: {
     padding: 4,
@@ -1227,8 +1235,9 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   filterOptions: {
     flexDirection: 'row',
@@ -1239,7 +1248,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   filterOption: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
@@ -1249,26 +1258,28 @@ const styles = StyleSheet.create({
   filterOptionSimple: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 12,
   },
   filterOptionSelected: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#00FF7F',
   },
   filterOptionText: {
     fontSize: 14,
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   filterOptionTextSimple: {
     fontSize: 16,
-    color: '#333',
+    color: '#FFFFFF',
     marginLeft: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   filterOptionTextSelected: {
-    color: 'white',
+    color: '#000000',
   },
   filterActions: {
     flexDirection: 'row',
@@ -1276,7 +1287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   resetButton: {
     paddingVertical: 12,
@@ -1284,10 +1295,11 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     fontSize: 16,
-    color: '#666',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   applyButton: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#00FF7F',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
@@ -1295,7 +1307,8 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#000000',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   listContent: {
     padding: 12,
@@ -1305,12 +1318,12 @@ const styles = StyleSheet.create({
     margin: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 8,
       },
       android: {
@@ -1337,6 +1350,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
   },
   imageGradient: {
     position: 'absolute',
@@ -1357,21 +1371,22 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   categoryContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: 'rgba(0, 255, 127, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   categoryText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   favoriteButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1381,14 +1396,16 @@ const styles = StyleSheet.create({
   plantName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333333',
+    color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   plantSpecies: {
     fontSize: 14,
-    color: '#666666',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   plantDetails: {
     flexDirection: 'row',
@@ -1397,18 +1414,19 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   detailText: {
     fontSize: 12,
-    color: '#666666',
+    color: '#FFFFFF',
     marginLeft: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   warningBanner: {
-    backgroundColor: 'rgba(255, 243, 224, 0.8)',
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
     flexDirection: 'row',
     padding: 12,
     alignItems: 'center',
@@ -1418,9 +1436,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   warningText: {
-    color: '#F57C00',
+    color: '#FF453A',
     marginLeft: 8,
     fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   emptyContainer: {
     padding: 60,
@@ -1430,38 +1449,42 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   clearSearchButton: {
     marginTop: 16,
     paddingVertical: 10,
     paddingHorizontal: 24,
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     borderRadius: 25,
   },
   clearSearchButtonText: {
-    color: '#2E7D32',
+    color: '#00FF7F',
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   footerContainer: {
     padding: 16,
     alignItems: 'center',
   },
   footerText: {
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   plantDescription: {
     fontSize: 12,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
     lineHeight: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   quickViewContainer: {
     width: '90%',
     maxHeight: '80%',
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -1486,14 +1509,16 @@ const styles = StyleSheet.create({
   quickViewTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   quickViewSpecies: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   quickViewDetails: {
     flexDirection: 'row',
@@ -1503,7 +1528,7 @@ const styles = StyleSheet.create({
   quickViewDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1511,28 +1536,31 @@ const styles = StyleSheet.create({
   quickViewDetailText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   quickViewDescription: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
     marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   quickViewActions: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   quickViewButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00FF7F',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
   },
   quickViewButtonText: {
-    color: 'white',
+    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   plantNameOverlay: {
     position: 'absolute',
@@ -1540,7 +1568,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 8,
-    backgroundColor: 'rgba(65, 131, 34, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
@@ -1548,9 +1576,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(112, 25, 83, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   tagIconContainer: {
     position: 'absolute',
@@ -1559,7 +1588,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(29, 150, 79, 0.9)',
+    backgroundColor: 'rgba(0, 255, 127, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -1578,8 +1607,8 @@ const styles = StyleSheet.create({
   categoryBadge: {
     position: 'absolute',
     top: 10,
-    left: 45, // Adjusted to not overlap with tag icon
-    backgroundColor: 'rgba(79, 30, 124, 0.65)',
+    left: 45,
+    backgroundColor: 'rgba(0, 255, 127, 0.65)',
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,

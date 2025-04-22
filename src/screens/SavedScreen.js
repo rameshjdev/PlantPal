@@ -244,7 +244,7 @@ const SavedScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -252,46 +252,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#212121',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   exploreButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   exploreButtonText: {
-    color: '#4CAF50',
+    color: '#00FF7F',
     fontSize: 14,
     fontWeight: '500',
     marginRight: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   searchIcon: {
     marginRight: 8,
+    color: '#00FF7F',
   },
   searchInput: {
     flex: 1,
     height: 40,
     fontSize: 16,
-    color: '#212121',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -300,17 +308,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 8,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   filterButtonActive: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
   },
   filterButtonText: {
     fontSize: 14,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   filterButtonTextActive: {
-    color: '#4CAF50',
+    color: '#00FF7F',
     fontWeight: '500',
   },
   plantList: {
@@ -323,14 +332,20 @@ const styles = StyleSheet.create({
   },
   plantCard: {
     width: COLUMN_WIDTH,
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   plantImageContainer: {
     position: 'relative',
@@ -344,6 +359,7 @@ const styles = StyleSheet.create({
   plantPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
   },
   plantImageGradient: {
     position: 'absolute',
@@ -361,7 +377,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -371,14 +387,16 @@ const styles = StyleSheet.create({
   plantName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#212121',
+    color: '#FFFFFF',
     marginBottom: 2,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   plantSpecies: {
     fontSize: 12,
     fontStyle: 'italic',
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   plantDetails: {
     flexDirection: 'row',
@@ -391,8 +409,9 @@ const styles = StyleSheet.create({
   },
   plantDetailText: {
     fontSize: 12,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginLeft: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   careLevelContainer: {
     marginLeft: 'auto',
@@ -403,6 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   messageContainer: {
     flex: 1,
@@ -412,31 +432,35 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#212121',
+    color: '#FFFFFF',
     marginTop: 16,
     marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   emptyText: {
     fontSize: 14,
-    color: '#757575',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   exploreButtonLarge: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
   },
   exploreButtonLargeText: {
-    color: 'white',
+    color: '#00FF7F',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
 });
 

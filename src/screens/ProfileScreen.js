@@ -12,7 +12,9 @@ import {
   TextInput,
   SafeAreaView,
   StatusBar,
-  Platform
+  Platform,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -25,6 +27,84 @@ import * as Location from 'expo-location';
 
 import { useAuth } from '../context/AuthContext';
 import { signOut, uploadProfileImage, updateUserProfile } from '../services/supabaseService';
+
+// Add EditProfileModal component
+const EditProfileModal = ({ visible, onClose, onSave, userData }) => {
+  const [editedName, setEditedName] = useState(userData.name);
+  const [editedEmail, setEditedEmail] = useState(userData.email);
+
+  const handleSave = () => {
+    onSave({
+      name: editedName,
+      email: editedEmail,
+    });
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={editedName}
+                    onChangeText={setEditedName}
+                    placeholder="Enter your name"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={editedEmail}
+                    onChangeText={setEditedEmail}
+                    placeholder="Enter your email"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={onClose}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleSave}
+                >
+                  <Text style={[styles.modalButtonText, styles.saveButtonText]}>Save Changes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -250,28 +330,28 @@ const ProfileScreen = () => {
   };
 
   // Handle edit profile
-  const handleEditProfile = async () => {
-    if (!isEditing) {
-      setEditedName(userData.name);
-      setEditedEmail(userData.email);
-      setIsEditing(true);
-      return;
-    }
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
+  const handleEditProfile = () => {
+    setIsEditModalVisible(true);
+  };
+
+  // Add handleSaveProfile function
+  const handleSaveProfile = async (updatedData) => {
     try {
       const { error } = await updateUserProfile({
-        full_name: editedName,
-        email: editedEmail,
+        full_name: updatedData.name,
+        email: updatedData.email,
       });
 
       if (error) throw error;
 
       // Update the user data immediately
-      userData.name = editedName;
-      userData.email = editedEmail;
+      userData.name = updatedData.name;
+      userData.email = updatedData.email;
 
       Alert.alert('Success', 'Profile updated successfully!');
-      setIsEditing(false);
+      setIsEditModalVisible(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
@@ -469,29 +549,9 @@ const ProfileScreen = () => {
               style={styles.actionButton}
               onPress={handleEditProfile}
             >
-              <MaterialCommunityIcons 
-                name={isEditing ? "check" : "account-edit"} 
-                size={24} 
-                color="#FFFFFF" 
-              />
-              <Text style={styles.actionButtonText}>
-                {isEditing ? "Save Changes" : "Edit Profile"}
-              </Text>
+              <MaterialCommunityIcons name="account-edit" size={24} color="#00FF7F" />
+              <Text style={styles.actionButtonText}>Edit Profile</Text>
             </TouchableOpacity>
-            
-            {isEditing && (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={() => {
-                  setIsEditing(false);
-                  setEditedName(userData.name);
-                  setEditedEmail(userData.email);
-                }}
-              >
-                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-                <Text style={styles.actionButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            )}
             
             <TouchableOpacity 
               style={[styles.actionButton, styles.logoutButton]}
@@ -523,6 +583,14 @@ const ProfileScreen = () => {
           </View>
         </ScrollView>
       </View>
+
+      {/* Add EditProfileModal */}
+      <EditProfileModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        onSave={handleSaveProfile}
+        userData={userData}
+      />
     </SafeAreaView>
   );
 };
@@ -551,6 +619,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#00FF7F',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   profileHeader: {
     alignItems: 'center',
@@ -580,7 +649,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: '#4CAF50',
+    borderColor: '#00FF7F',
   },
   avatarGradient: {
     position: 'absolute',
@@ -594,7 +663,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00FF7F',
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -611,15 +680,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   userEmail: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   joinDate: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -650,7 +722,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -660,10 +732,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   statLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   settingsSection: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -688,6 +762,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   settingItem: {
     flexDirection: 'row',
@@ -700,7 +775,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -713,10 +788,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   settingDescription: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   actionsSection: {
     paddingHorizontal: 24,
@@ -726,19 +803,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 12,
   },
   logoutButton: {
-    backgroundColor: '#F44336',
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#00FF7F',
     marginLeft: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   appInfo: {
     alignItems: 'center',
@@ -748,15 +826,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   appLinks: {
     flexDirection: 'row',
   },
   appLink: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: '#00FF7F',
     marginHorizontal: 12,
     textDecorationLine: 'underline',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   editInput: {
     fontSize: 24,
@@ -764,13 +844,101 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#4CAF50',
+    borderBottomColor: '#00FF7F',
     paddingVertical: 4,
     width: '100%',
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   cancelButton: {
-    backgroundColor: '#FF9800',
+    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  saveButton: {
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00FF7F',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  },
+  saveButtonText: {
+    color: '#00FF7F',
   },
 });
 

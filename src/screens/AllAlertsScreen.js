@@ -378,20 +378,20 @@ const AllAlertsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.title}>All Alerts</Text>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={handleAddReminder}
         >
-          <Ionicons name="add" size={24} color="#000" />
+          <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -405,7 +405,7 @@ const AllAlertsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FFF8',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -414,18 +414,18 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
@@ -435,12 +435,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   addButton: {
     width: 40,
@@ -448,33 +449,34 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
   },
   filterContainer: {
     flexDirection: 'row',
     padding: 16,
     paddingTop: 8,
     paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   filterButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginRight: 8,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   activeFilterButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
   },
   filterText: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   activeFilterText: {
-    color: '#4CAF50',
+    color: '#00FF7F',
     fontWeight: '500',
   },
   reminderList: {
@@ -482,7 +484,7 @@ const styles = StyleSheet.create({
   },
   reminderItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -491,11 +493,11 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.3,
         shadowRadius: 4,
       },
       android: {
-        elevation: 2,
+        elevation: 4,
       },
     }),
   },
@@ -510,14 +512,14 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   reminderPlaceholder: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   reminderPlaceholderText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#00FF7F',
   },
   reminderInfo: {
     flex: 1,
@@ -525,13 +527,15 @@ const styles = StyleSheet.create({
   reminderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   reminderDate: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   reminderActions: {
     flexDirection: 'row',
@@ -542,15 +546,16 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
   },
   completeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   completeButtonText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   emptyContainer: {
     flex: 1,
@@ -561,46 +566,49 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginTop: 16,
     marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   createButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
     ...Platform.select({
       ios: {
-        shadowColor: '#4CAF50',
+        shadowColor: '#00FF7F',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.3,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontWeight: '600',
     fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 24,
     width: '85%',
@@ -609,7 +617,7 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.3,
         shadowRadius: 4,
       },
       android: {
@@ -621,7 +629,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -629,16 +637,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   modalMessage: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -653,33 +663,35 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   cancelButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
     ...Platform.select({
       ios: {
-        shadowColor: '#4CAF50',
+        shadowColor: '#00FF7F',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.3,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
   cancelButtonText: {
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   confirmButtonText: {
-    color: '#FFFFFF',
+    color: '#00FF7F',
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
 });
 

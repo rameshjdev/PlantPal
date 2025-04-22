@@ -12,7 +12,8 @@ import {
   ImageBackground,
   Dimensions,
   ActivityIndicator,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -207,15 +208,15 @@ const UserPlantItem = ({ plant, onRemove, onPress }) => {
   );
 };
 
-// Add this as a new component
+// Update CategoryCard component
 const CategoryCard = ({ category }) => {
   const navigation = useNavigation();
   const theme = useTheme();
   
   const getCategoryColor = (categoryName) => {
     const colors = [
-      '#4CAF50', '#2196F3', '#9C27B0', '#FF9800', 
-      '#03A9F4', '#E91E63', '#009688', '#673AB7'
+      '#00FF7F', '#FF6B6B', '#4ECDC4', '#FFD166',
+      '#06D6A0', '#EF476F', '#118AB2', '#073B4C'
     ];
     
     const hash = categoryName.split('').reduce(
@@ -274,6 +275,7 @@ const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const scrollY = new Animated.Value(0);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -435,6 +437,18 @@ const HomeScreen = () => {
     );
   };
 
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -50],
+    extrapolate: 'clamp',
+  });
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -466,8 +480,14 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
       
-      {/* Modern Header */}
-      <View style={styles.header}>
+      {/* Modern Animated Header */}
+      <Animated.View style={[
+        styles.header,
+        {
+          opacity: headerOpacity,
+          transform: [{ translateY: headerTranslateY }]
+        }
+      ]}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greetingText}>{getGreeting()},</Text>
@@ -480,12 +500,17 @@ const HomeScreen = () => {
             <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
       
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
         <View style={styles.contentContainer}>
           {/* Quick Actions Section */}
@@ -494,15 +519,22 @@ const HomeScreen = () => {
               style={styles.careRemindersCard}
               onPress={() => navigation.navigate('AllAlerts')}
             >
-              <View style={styles.careRemindersContent}>
-                <View style={styles.careRemindersIconContainer}>
-                  <Ionicons name="notifications-outline" size={28} color="#00FF7F" />
+              <LinearGradient
+                colors={['#00FF7F', '#00CC66']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.careRemindersGradient}
+              >
+                <View style={styles.careRemindersContent}>
+                  <View style={styles.careRemindersIconContainer}>
+                    <Ionicons name="notifications-outline" size={28} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.careRemindersTextContainer}>
+                    <Text style={styles.careRemindersTitle}>Care Reminders</Text>
+                    <Text style={styles.careRemindersSubtitle}>{todayReminders.length} tasks for today</Text>
+                  </View>
                 </View>
-                <View style={styles.careRemindersTextContainer}>
-                  <Text style={styles.careRemindersTitle}>Care Reminders</Text>
-                  <Text style={styles.careRemindersSubtitle}>{todayReminders.length} tasks for today</Text>
-                </View>
-              </View>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -641,7 +673,7 @@ const HomeScreen = () => {
           {/* Bottom Space */}
           <View style={styles.bottomSpace} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 };
@@ -692,6 +724,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 16,
     backgroundColor: '#1A1A1A',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   headerContent: {
     flexDirection: 'row',
@@ -723,6 +760,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    paddingTop: Platform.OS === 'ios' ? 120 : 110,
     paddingBottom: Platform.OS === 'ios' ? 90 : 80,
   },
   contentContainer: {
@@ -733,14 +771,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   careRemindersCard: {
-    backgroundColor: '#1A1A1A',
     borderRadius: 16,
-    padding: 16,
-    elevation: 2,
+    overflow: 'hidden',
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  careRemindersGradient: {
+    padding: 16,
   },
   careRemindersContent: {
     flexDirection: 'row',
@@ -750,7 +790,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -766,7 +806,7 @@ const styles = StyleSheet.create({
   },
   careRemindersSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -795,11 +835,11 @@ const styles = StyleSheet.create({
   myPlantsGradient: {
     borderRadius: 20,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   plantStatsContainer: {
     flexDirection: 'row',
@@ -856,11 +896,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
-    elevation: 1,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   userPlantImage: {
     width: 60,
@@ -933,11 +973,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#1A1A1A',
-    elevation: 3,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   popularPlantImageContainer: {
     width: '100%',
@@ -993,9 +1033,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   reminderImage: {
     width: 50,
@@ -1033,17 +1073,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#1A1A1A',
     borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   categoryImageContainer: {
     width: '100%',
