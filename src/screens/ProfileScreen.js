@@ -121,6 +121,7 @@ const ProfileScreen = () => {
   const [wateringReminders, setWateringReminders] = useState(false);
   const [fertilizingReminders, setFertilizingReminders] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState(false);
+  const [weatherEnabled, setWeatherEnabled] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Edit profile states
@@ -158,6 +159,7 @@ const ProfileScreen = () => {
         setWateringReminders(settings.wateringReminders || false);
         setFertilizingReminders(settings.fertilizingReminders || false);
         setWeatherAlerts(settings.weatherAlerts || false);
+        setWeatherEnabled(settings.weatherEnabled || false);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -178,7 +180,7 @@ const ProfileScreen = () => {
     switch (setting) {
       case 'notifications':
         setNotificationsEnabled(value);
-        await saveSettings({ notificationsEnabled: value });
+        await saveSettings({ ...await AsyncStorage.getItem('userSettings').then(JSON.parse), notificationsEnabled: value });
         if (value) {
           // Request notification permissions
           const { status } = await Notifications.requestPermissionsAsync();
@@ -193,7 +195,8 @@ const ProfileScreen = () => {
         break;
       case 'location':
         setLocationEnabled(value);
-        await saveSettings({ locationEnabled: value });
+        const settings = await AsyncStorage.getItem('userSettings').then(JSON.parse) || {};
+        await saveSettings({ ...settings, locationEnabled: value });
         if (value) {
           // Request location permissions
           const { status } = await Location.requestForegroundPermissionsAsync();
@@ -204,11 +207,15 @@ const ProfileScreen = () => {
             );
             setLocationEnabled(false);
           }
+        } else {
+          // If location is being disabled, also disable weather display
+          setWeatherEnabled(false);
+          await saveSettings({ ...settings, locationEnabled: value, weatherEnabled: false });
         }
         break;
       case 'watering':
         setWateringReminders(value);
-        await saveSettings({ wateringReminders: value });
+        await saveSettings({ ...await AsyncStorage.getItem('userSettings').then(JSON.parse), wateringReminders: value });
         if (value && !notificationsEnabled) {
           Alert.alert(
             'Notifications Required',
@@ -219,7 +226,7 @@ const ProfileScreen = () => {
         break;
       case 'fertilizing':
         setFertilizingReminders(value);
-        await saveSettings({ fertilizingReminders: value });
+        await saveSettings({ ...await AsyncStorage.getItem('userSettings').then(JSON.parse), fertilizingReminders: value });
         if (value && !notificationsEnabled) {
           Alert.alert(
             'Notifications Required',
@@ -230,7 +237,7 @@ const ProfileScreen = () => {
         break;
       case 'weather':
         setWeatherAlerts(value);
-        await saveSettings({ weatherAlerts: value });
+        await saveSettings({ ...await AsyncStorage.getItem('userSettings').then(JSON.parse), weatherAlerts: value });
         if (value && !locationEnabled) {
           Alert.alert(
             'Location Required',
@@ -238,6 +245,41 @@ const ProfileScreen = () => {
           );
           setWeatherAlerts(false);
         }
+        break;
+      case 'weather_display':
+        const currentSettings = await AsyncStorage.getItem('userSettings').then(JSON.parse) || {};
+        if (value && !currentSettings.locationEnabled) {
+          Alert.alert(
+            'Location Required',
+            'Please enable location services first to display weather information.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Enable Location', 
+                onPress: async () => {
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  if (status === 'granted') {
+                    setLocationEnabled(true);
+                    setWeatherEnabled(true);
+                    await saveSettings({ 
+                      ...currentSettings, 
+                      locationEnabled: true, 
+                      weatherEnabled: true 
+                    });
+                  } else {
+                    Alert.alert(
+                      'Permission Denied',
+                      'Weather display requires location permission to function.'
+                    );
+                  }
+                }
+              }
+            ]
+          );
+          return;
+        }
+        setWeatherEnabled(value);
+        await saveSettings({ ...currentSettings, weatherEnabled: value });
         break;
     }
   };
@@ -539,6 +581,27 @@ const ProfileScreen = () => {
                 onValueChange={(value) => handleSettingChange('fertilizing', value)}
                 trackColor={{ false: '#E0E0E0', true: '#8BC34A' }}
                 thumbColor={fertilizingReminders ? '#FFFFFF' : '#BDBDBD'}
+              />
+            </View>
+          </View>
+
+          {/* Weather Section */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionTitle}>Weather</Text>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingIconContainer}>
+                <MaterialCommunityIcons name="weather-partly-cloudy" size={24} color="#FF9500" />
+              </View>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Weather Display</Text>
+                <Text style={styles.settingDescription}>Show weather information on home screen</Text>
+              </View>
+              <Switch
+                value={weatherEnabled}
+                onValueChange={(value) => handleSettingChange('weather_display', value)}
+                trackColor={{ false: '#E0E0E0', true: '#FF9500' }}
+                thumbColor={weatherEnabled ? '#FFFFFF' : '#BDBDBD'}
               />
             </View>
           </View>

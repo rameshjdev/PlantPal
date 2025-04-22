@@ -296,34 +296,34 @@ const PlantDetailScreen = ({ route }) => {
   };
 
   // Get plant description with fallbacks
-  const getDescription = () => {
-    if (plant.description) return plant.description;
-    
-    // Try to build a description from other data
-    let description = "";
-    
-    if (plant.common_name && plant.scientific_name) {
-      description += `${plant.common_name} (${plant.scientific_name[0]}) `;
-    }
-    
-    if (plant.cycle) {
-      description += `is a ${plant.cycle.toLowerCase()} plant. `;
-    }
-    
-    if (plant.watering) {
-      description += `It requires ${plant.watering.toLowerCase()} watering. `;
-    }
-    
-    if (plant.sunlight && Array.isArray(plant.sunlight)) {
-      description += `It thrives in ${plant.sunlight.join(' or ')} conditions. `;
-    }
-    
-    if (description) {
-      return description;
-    }
-    
-    return "No description available for this plant. Please check care instructions below for growing requirements.";
-  };
+  // const getDescription = () => {
+  //   if (plant.description) return plant.description;
+  //   
+  //   // Try to build a description from other data
+  //   let description = "";
+  //   
+  //   if (plant.common_name && plant.scientific_name) {
+  //     description += `${plant.common_name} (${plant.scientific_name[0]}) `;
+  //   }
+  //   
+  //   if (plant.cycle) {
+  //     description += `is a ${plant.cycle.toLowerCase()} plant. `;
+  //   }
+  //   
+  //   if (plant.watering) {
+  //     description += `It requires ${plant.watering.toLowerCase()} watering. `;
+  //   }
+  //   
+  //   if (plant.sunlight && Array.isArray(plant.sunlight)) {
+  //     description += `It thrives in ${plant.sunlight.join(' or ')} conditions. `;
+  //   }
+  //   
+  //   if (description) {
+  //     return description;
+  //   }
+  //   
+  //   return "No description available for this plant. Please check care instructions below for growing requirements.";
+  // };
 
   // Format growing tips for display
   const getGrowingTips = () => {
@@ -449,6 +449,109 @@ const PlantDetailScreen = ({ route }) => {
         return ['#00BCD4', '#0097A7'];
       default:
         return ['#607D8B', '#455A64'];
+    }
+  };
+
+  // Add these helper functions before the render method
+  const parseDescription = (description) => {
+    if (!description) return { facts: [], characteristics: [] };
+
+    // Split the description into sentences
+    const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 0);
+
+    // Keywords to identify facts and characteristics
+    const factKeywords = ['native', 'origin', 'discovered', 'history', 'tradition', 'culture', 'symbol', 'meaning'];
+    const characteristicKeywords = ['leaf', 'stem', 'root', 'flower', 'growth', 'habit', 'size', 'color', 'shape', 'pattern'];
+
+    const facts = [];
+    const characteristics = [];
+
+    sentences.forEach(sentence => {
+      const lowerSentence = sentence.toLowerCase();
+      
+      // Check for fact keywords
+      if (factKeywords.some(keyword => lowerSentence.includes(keyword))) {
+        facts.push(sentence.trim());
+      }
+      // Check for characteristic keywords
+      else if (characteristicKeywords.some(keyword => lowerSentence.includes(keyword))) {
+        characteristics.push(sentence.trim());
+      }
+      // If no keywords found, try to categorize based on content
+      else {
+        if (lowerSentence.includes('can grow') || 
+            lowerSentence.includes('reaches') || 
+            lowerSentence.includes('known for') ||
+            lowerSentence.includes('famous for')) {
+          facts.push(sentence.trim());
+        } else if (lowerSentence.includes('has') || 
+                   lowerSentence.includes('features') || 
+                   lowerSentence.includes('appearance') ||
+                   lowerSentence.includes('looks')) {
+          characteristics.push(sentence.trim());
+        }
+      }
+    });
+
+    return { facts, characteristics };
+  };
+
+  // Add this helper function before the render method
+  const parsePlantInfo = (plantInfo) => {
+    if (!plantInfo) return null;
+    
+    try {
+      // Try to parse if it's a JSON string
+      const info = typeof plantInfo === 'string' ? JSON.parse(plantInfo) : plantInfo;
+      
+      // Ensure we have an object
+      if (typeof info !== 'object') return null;
+      
+      // Group info by type
+      const groupedInfo = {
+        description: [],
+        facts: [],
+        characteristics: [],
+        care: [],
+        other: []
+      };
+      
+      // Categorize each piece of information
+      Object.entries(info).forEach(([key, value]) => {
+        const lowerKey = key.toLowerCase();
+        const lowerValue = String(value).toLowerCase();
+        
+        if (lowerKey.includes('fact') || 
+            lowerKey.includes('origin') || 
+            lowerKey.includes('history') ||
+            lowerValue.includes('native') ||
+            lowerValue.includes('discovered')) {
+          groupedInfo.facts.push({ key, value });
+        } else if (lowerKey.startsWith('description') || lowerKey.startsWith('details')) {
+          groupedInfo.description.push({ key, value });
+        } else if (lowerKey.includes('characteristic') || 
+                   lowerKey.includes('feature') || 
+                   lowerKey.includes('appearance') ||
+                   lowerKey.includes('leaf') ||
+                   lowerKey.includes('stem') ||
+                   lowerKey.includes('root')) {
+          groupedInfo.characteristics.push({ key, value });
+        } else if (lowerKey.includes('care') || 
+                   lowerKey.includes('grow') || 
+                   lowerKey.includes('maintain') ||
+                   lowerKey.includes('water') ||
+                   lowerKey.includes('light') ||
+                   lowerKey.includes('soil')) {
+          groupedInfo.care.push({ key, value });
+        } else {
+          groupedInfo.other.push({ key, value });
+        }
+      });
+      
+      return groupedInfo;
+    } catch (error) {
+      console.error('Error parsing plant info:', error);
+      return null;
     }
   };
 
@@ -634,10 +737,145 @@ const PlantDetailScreen = ({ route }) => {
             </View>
           )}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{getDescription()}</Text>
-          </View>
+          {/* Plant Info Sections */}
+          {(() => {
+            const plantInfo = parsePlantInfo(plant?.plant_info);
+            if (!plantInfo) return null;
+
+            // Helper function to render information items
+            const renderInfoItems = (items, type) => {
+              if (!items || items.length === 0) return null;
+
+              return items.map((item, index) => {
+                // Determine icon and colors based on type
+                let icon, colors, bgColors, textAlign;
+                switch (type) {
+                  case 'facts':
+                    icon = 'lightbulb-on-outline';
+                    colors = ['#FFD700', '#FFA000'];
+                    bgColors = ['rgba(22, 218, 120, 0.87)', 'rgba(0, 255, 127, 0.1)'];
+                    break;
+                  case 'characteristics':
+                    icon = 'leaf-maple';
+                    colors = ['#00FF7F', '#00C853'];
+                    bgColors = ['rgba(22, 218, 120, 0.87)', 'rgba(0, 255, 127, 0.1)'];
+                    break;
+                  case 'care':
+                    icon = 'watering-can-outline';
+                    colors = ['#2196F3', '#1976D2'];
+                    bgColors = ['rgba(33, 150, 243, 0.2)', 'rgba(33, 150, 243, 0.1)'];
+                    break;
+                  default:
+                    icon = 'information-outline';
+                    colors = ['#9C27B0', '#7B1FA2'];
+                    bgColors = ['rgba(156, 39, 176, 0.2)', 'rgba(156, 39, 176, 0.1)'];
+                }
+
+                return (
+                  <View key={index} style={styles.infoItem}>
+                    <LinearGradient
+                      colors={bgColors}
+                      style={styles.infoItemGradient}
+                    >
+                      <View style={styles.infoItemHeader}>
+                        <LinearGradient
+                          colors={colors}
+                          style={styles.infoItemIconContainer}
+                        >
+                          <MaterialCommunityIcons 
+                            name={icon} 
+                            size={20} 
+                            color={type === 'facts' || type === 'characteristics' ? '#000000' : '#FFFFFF'} 
+                          />
+                        </LinearGradient>
+                        
+                        <Text style={styles.infoItemTitle}>{item.key.toUpperCase()}</Text>
+                      </View>
+                      <View style={styles.infoItemContent}>
+                        {typeof item.value === 'string' ? (
+                          <Text style={styles.infoItemText}>{item.value}</Text>
+                        ) : Array.isArray(item.value) ? (
+                          <View style={styles.infoItemList}>
+                            {item.value.map((value, idx) => (
+                              <View key={idx} style={styles.infoItemListItem}>
+                                <MaterialCommunityIcons 
+                                  name="check-circle" 
+                                  size={16} 
+                                  color={colors[0]} 
+                                  style={styles.listItemIcon} 
+                                />
+                                <Text style={styles.infoItemText}>{value}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={styles.infoItemText}>{JSON.stringify(item.value)}</Text>
+                        )}
+                      </View>
+                    </LinearGradient>
+                  </View>
+                );
+              });
+            };
+
+            return (
+              <View style={styles.section}>
+                {/* Interesting Facts Section */}
+                {plantInfo.facts.length > 0 && (
+                  <View style={styles.subsectionContainer}>
+                    <View style={styles.subsectionContent}>
+                      {renderInfoItems(plantInfo.facts, 'facts')}
+                    </View>
+                  </View>
+                )}
+
+                {/* Unique Characteristics Section */}
+                {plantInfo.characteristics.length > 0 && (
+                  <View style={styles.subsectionContainer}>
+                    <View style={styles.subsectionContent}>
+                      {renderInfoItems(plantInfo.characteristics, 'characteristics')}
+                    </View>
+                  </View>
+                )}
+
+                {/* Additional Care Tips Section */}
+                {plantInfo.care.length > 0 && (
+                  <View style={styles.subsectionContainer}>
+                    <View style={styles.subsectionHeader}>
+                      <LinearGradient
+                        colors={['#2196F3', '#1976D2']}
+                        style={styles.subsectionIconContainer}
+                      >
+                        <MaterialCommunityIcons name="watering-can-outline" size={22} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={styles.subsectionTitle}>Additional Care Tips</Text>
+                    </View>
+                    <View style={styles.subsectionContent}>
+                      {renderInfoItems(plantInfo.care, 'care')}
+                    </View>
+                  </View>
+                )}
+
+                {/* Other Information Section */}
+                {plantInfo.other.length > 0 && (
+                  <View style={styles.subsectionContainer}>
+                    <View style={styles.subsectionHeader}>
+                      <LinearGradient
+                        colors={['#9C27B0', '#7B1FA2']}
+                        style={styles.subsectionIconContainer}
+                      >
+                        <MaterialCommunityIcons name="information-outline" size={22} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={styles.subsectionTitle}>Additional Information</Text>
+                    </View>
+                    <View style={styles.subsectionContent}>
+                      {renderInfoItems(plantInfo.other, 'other')}
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Care Requirements</Text>
@@ -1136,17 +1374,53 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#212121',
-    marginBottom: 20,
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  },
+  descriptionContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  descriptionGradient: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 127, 0.1)',
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#424242',
+    color: 'black',
     textAlign: 'justify',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
   careContainer: {
     marginHorizontal: -24,
@@ -1196,21 +1470,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   infoItem: {
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-    paddingBottom: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 8,
+  infoItemGradient: {
+    padding: 16,
+    borderRadius: 16,
   },
-  infoText: {
+  infoItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoItemIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  infoItemTitle: {
     fontSize: 16,
-    lineHeight: 24,
-    color: '#616161',
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  },
+  infoItemContent: {
+    marginLeft: 44,
+  },
+  infoItemText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#000000',
+    textAlign: 'justify',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  infoItemList: {
+    marginTop: 4,
+  },
+  infoItemListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  listItemIcon: {
+    marginRight: 8,
   },
   buttonContainer: {
     marginBottom: 40,
@@ -1299,6 +1617,170 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#616161',
+  },
+  subsectionContainer: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  subsectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  subsectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  },
+  subsectionContent: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    textAlign: 'justify',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  subsectionGradient: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  factsContainer: {
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+  },
+  characteristicsContainer: {
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+  },
+  factItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  characteristicItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  factIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  characteristicIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  factText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  characteristicText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  infoItemContent: {
+    flex: 1,
+  },
+  infoItemKey: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 4,
+    textTransform: 'capitalize',
+  },
+  careTipsContainer: {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  careTipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  careTipIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  careTipText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  otherInfoContainer: {
+    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+  },
+  otherInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  otherInfoIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(156, 39, 176, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  otherInfoText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
 });
 

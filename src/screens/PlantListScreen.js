@@ -13,6 +13,56 @@ import { SharedElement } from 'react-navigation-shared-element';
 
 const { width, height } = Dimensions.get('window');
 
+// Move these helper functions outside the component
+const getWaterInfo = (watering) => {
+  if (!watering) return 'Average';
+  return watering;
+};
+
+const getLightInfo = (sunlight) => {
+  if (!sunlight || !Array.isArray(sunlight) || sunlight.length === 0) {
+    return 'Medium';
+  }
+  
+  // Return first light requirement
+  const light = sunlight[0].replace(/_/g, ' ');
+  return light.charAt(0).toUpperCase() + light.slice(1);
+};
+
+const getPlantInfoPreview = (plantInfo) => {
+  if (!plantInfo) return null;
+  
+  try {
+    // Try to parse if it's a JSON string
+    const info = typeof plantInfo === 'string' ? JSON.parse(plantInfo) : plantInfo;
+    
+    // Ensure we have an object
+    if (typeof info !== 'object') return null;
+    
+    // Get the first interesting fact or characteristic
+    const entries = Object.entries(info);
+    if (entries.length === 0) return null;
+    
+    // Find the most interesting piece of information
+    const interestingEntry = entries.find(([key, value]) => {
+      const lowerKey = key.toLowerCase();
+      const lowerValue = String(value).toLowerCase();
+      return lowerKey.includes('fact') || 
+             lowerKey.includes('characteristic') || 
+             lowerValue.includes('native') ||
+             lowerValue.includes('unique');
+    }) || entries[0];
+    
+    return {
+      key: interestingEntry[0],
+      value: interestingEntry[1]
+    };
+  } catch (error) {
+    console.error('Error parsing plant info:', error);
+    return null;
+  }
+};
+
 const PlantListScreen = ({ route }) => {
   const { category, usePopularPlants } = route.params;
   const navigation = useNavigation();
@@ -464,49 +514,95 @@ const PlantListScreen = ({ route }) => {
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={styles.quickViewContainer}>
-                <Image 
-                  source={getPlantImage()} 
-                  style={styles.quickViewImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.quickViewContent}>
-                  <Text style={styles.quickViewTitle}>{plant.name}</Text>
-                  {plant.species && (
-                    <Text style={styles.quickViewSpecies}>{plant.species}</Text>
-                  )}
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleContainer}>
+                    <Text style={styles.modalTitle}>{getDisplayName(plant.name)}</Text>
+                    {plant.species && (
+                      <Text style={styles.modalSubtitle}>{getSpeciesName(plant.species)}</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.modalBody}>
+                  <View style={styles.modalImageContainer}>
+                    <Image
+                      source={getPlantImage()}
+                      style={styles.modalImage}
+                      onError={handleImageError}
+                    />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.8)']}
+                      style={styles.modalImageGradient}
+                    />
+                  </View>
                   
-                  <View style={styles.quickViewDetails}>
-                    <View style={styles.quickViewDetailItem}>
-                      <MaterialCommunityIcons name="water-outline" size={20} color="#00FF7F" />
-                      <Text style={styles.quickViewDetailText}>
-                        {plant.watering || 'Average'}
-                      </Text>
-                    </View>
+                  <View style={styles.modalInfo}>
+                    {(() => {
+                      const plantInfo = getPlantInfoPreview(plant.plant_info);
+                      if (!plantInfo) return null;
+                      
+                      return (
+                        <View style={styles.modalDescription}>
+                          <MaterialCommunityIcons name="information" size={20} color="#00FF7F" style={styles.descriptionIcon} />
+                          <Text style={styles.modalDescriptionText} numberOfLines={3}>
+                            {plantInfo.value}
+                          </Text>
+                        </View>
+                      );
+                    })()}
                     
-                    <View style={styles.quickViewDetailItem}>
-                      <MaterialCommunityIcons name="white-balance-sunny" size={20} color="#FF9800" />
-                      <Text style={styles.quickViewDetailText}>
-                        {plant.sunlight ? plant.sunlight[0] : 'Medium'}
-                      </Text>
+                    <View style={styles.modalDetails}>
+                      <View style={styles.modalDetailItem}>
+                        <LinearGradient
+                          colors={['#4CAF50', '#2E7D32']}
+                          style={styles.detailIconContainer}
+                        >
+                          <MaterialCommunityIcons name="water-outline" size={20} color="#FFFFFF" />
+                        </LinearGradient>
+                        <View style={styles.detailTextContainer}>
+                          <Text style={styles.detailLabel}>Water</Text>
+                          <Text style={styles.detailText}>{getWaterInfo(plant.watering)}</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.modalDetailItem}>
+                        <LinearGradient
+                          colors={['#FF9800', '#F57C00']}
+                          style={styles.detailIconContainer}
+                        >
+                          <MaterialCommunityIcons name="white-balance-sunny" size={20} color="#FFFFFF" />
+                        </LinearGradient>
+                        <View style={styles.detailTextContainer}>
+                          <Text style={styles.detailLabel}>Light</Text>
+                          <Text style={styles.detailText}>{getLightInfo(plant.sunlight)}</Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
-
-                  <Text style={styles.quickViewDescription} numberOfLines={3}>
-                    {plant.description || 'A beautiful plant for your space.'}
-                  </Text>
-
-                  <View style={styles.quickViewActions}>
-                    <TouchableOpacity 
-                      style={styles.quickViewButton}
-                      onPress={() => {
-                        onClose();
-                        navigation.navigate('PlantDetail', { plantId: plant.id });
-                      }}
+                </View>
+                
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity 
+                    style={styles.modalButton}
+                    onPress={() => {
+                      onClose();
+                      navigation.navigate('PlantDetail', { plantId: plant.id });
+                    }}
+                  >
+                    <LinearGradient
+                      colors={['#00FF7F', '#00C853']}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 0}}
+                      style={styles.modalButtonGradient}
                     >
-                      <Text style={styles.quickViewButtonText}>View Details</Text>
-                    </TouchableOpacity>
-                  </View>
+                      <MaterialCommunityIcons name="leaf" size={20} color="#000000" style={styles.buttonIcon} />
+                      <Text style={styles.modalButtonText}>View Details</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -633,23 +729,6 @@ const PlantListScreen = ({ route }) => {
       return species.length > 25 ? species.substring(0, 25) + '...' : species;
     };
 
-    // Get watering info text
-    const getWaterInfo = (watering) => {
-      if (!watering) return 'Average';
-      return watering;
-    };
-
-    // Get light info text
-    const getLightInfo = (sunlight) => {
-      if (!sunlight || !Array.isArray(sunlight) || sunlight.length === 0) {
-        return 'Medium';
-      }
-      
-      // Return first light requirement
-      const light = sunlight[0].replace(/_/g, ' ');
-      return light.charAt(0).toUpperCase() + light.slice(1);
-    };
-
     // Get plant category/badge text
     const getCategoryBadge = () => {
       // Check for specific plant types
@@ -686,61 +765,8 @@ const PlantListScreen = ({ route }) => {
     const placeholderColor = getPlaceholderColor();
     const categoryLabel = getCategoryBadge();
 
-    // Generate brief plant description based on plant type
-    const getPlantDescription = (plant) => {
-      if (!plant) return "A beautiful houseplant for your space.";
-      
-      let description = "";
-      
-      // Try to determine plant type
-      const isSucculent = plant.watering === 'Minimum' || 
-        (plant.water && plant.water.toLowerCase().includes('2-3 weeks'));
-      
-      const isFlowering = plant.name && 
-        (plant.name.toLowerCase().includes('lily') || 
-         plant.name.toLowerCase().includes('rose') || 
-         plant.name.toLowerCase().includes('orchid') ||
-         plant.name.toLowerCase().includes('flower'));
-         
-      const isIndoor = plant.light && typeof plant.light === 'string' && !plant.light.toLowerCase().includes('full sun only');
-      
-      const isTropical = ['monstera', 'palm', 'philodendron', 'calathea', 'anthurium'].some(
-        name => plant.name && plant.name.toLowerCase().includes(name)
-      );
-      
-      const isHerb = ['mint', 'basil', 'thyme', 'oregano', 'rosemary', 'sage'].some(
-        name => plant.name && plant.name.toLowerCase().includes(name)
-      );
-      
-      // Build description based on plant characteristics
-      if (isSucculent) {
-        description = "Water-storing succulent that thrives with minimal care.";
-      } else if (isFlowering) {
-        description = "Beautiful flowering plant that adds color to your space.";
-      } else if (isHerb) {
-        description = "Aromatic herb that can be used for cooking and tea.";
-      } else if (isTropical) {
-        description = "Lush tropical plant with striking foliage.";
-      } else if (isIndoor) {
-        description = "Perfect indoor plant to purify air and add greenery.";
-      } else {
-        description = "Versatile plant to enhance your living space.";
-      }
-      
-      // Add care level if available
-      if (plant.careLevel) {
-        const care = plant.careLevel.toLowerCase();
-        if (care.includes('easy') || care.includes('very easy')) {
-          description += " Easy to care for.";
-        } else if (care.includes('moderate')) {
-          description += " Requires moderate attention.";
-        } else if (care.includes('difficult')) {
-          description += " Needs special care.";
-        }
-      }
-      
-      return description;
-    };
+    // Get plant info preview
+    const plantInfoPreview = getPlantInfoPreview(item.plant_info);
 
     return (
       <Animated.View
@@ -810,9 +836,14 @@ const PlantListScreen = ({ route }) => {
                 <Text style={styles.plantSpecies} numberOfLines={1}>{getSpeciesName(item.species)}</Text>
               )}
               
-              <Text style={styles.plantDescription} numberOfLines={2}>
-                {getPlantDescription(item)}
-              </Text>
+              {plantInfoPreview && (
+                <View style={styles.plantInfoPreview}>
+                  <MaterialCommunityIcons name="information" size={14} color="#00FF7F" />
+                  <Text style={styles.plantInfoPreviewText} numberOfLines={2}>
+                    {plantInfoPreview.value}
+                  </Text>
+                </View>
+              )}
               
               <View style={styles.plantDetailsContainer}>
                 <View style={styles.plantDetailRow}>
@@ -913,21 +944,6 @@ const PlantListScreen = ({ route }) => {
     return species.length > 25 ? species.substring(0, 25) + '...' : species;
   };
 
-  const getWaterInfo = (watering) => {
-    if (!watering) return 'Average';
-    return watering;
-  };
-
-  const getLightInfo = (sunlight) => {
-    if (!sunlight || !Array.isArray(sunlight) || sunlight.length === 0) {
-      return 'Medium';
-    }
-    
-    // Return first light requirement
-    const light = sunlight[0].replace(/_/g, ' ');
-    return light.charAt(0).toUpperCase() + light.slice(1);
-  };
-
   const handleImageError = () => {
     console.log('Image failed to load');
   };
@@ -938,11 +954,13 @@ const PlantListScreen = ({ route }) => {
     setIsQuickViewVisible(true);
   };
 
+  // Update the plant card rendering in the renderPlantItem function
   const renderPlantItem = ({ item, index }) => {
     const isFavorite = userPlants.some(p => p.id === item.id);
     const imageSource = getPlantImage(item);
     const placeholderColor = getPlaceholderColor(item);
     const categoryLabel = getCategoryBadge(item);
+    const plantInfoPreview = getPlantInfoPreview(item.plant_info);
 
     return (
       <Animated.View
@@ -1010,6 +1028,15 @@ const PlantListScreen = ({ route }) => {
               <Text style={styles.plantSpecies} numberOfLines={1}>
                 {getSpeciesName(item.species)}
               </Text>
+            )}
+            
+            {plantInfoPreview && (
+              <View style={styles.plantInfoPreview}>
+                <MaterialCommunityIcons name="information" size={14} color="#00FF7F" />
+                <Text style={styles.plantInfoPreviewText} numberOfLines={2}>
+                  {plantInfoPreview.value}
+                </Text>
+              </View>
             )}
             
             <View style={styles.plantDetails}>
@@ -1197,16 +1224,27 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
-    minHeight: '60%',
+    width: '90%',
     maxHeight: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1217,97 +1255,132 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
+  modalTitleContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontStyle: 'italic',
+    marginTop: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
   closeButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalScrollContent: {
-    paddingHorizontal: 20,
+  modalBody: {
+    padding: 20,
   },
-  filterSection: {
-    marginVertical: 16,
+  modalImageContainer: {
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 20,
   },
-  filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+  modalImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  filterOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
+  modalImageGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
   },
-  filterOptionsSimple: {
+  modalInfo: {
     marginTop: 8,
   },
-  filterOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+  modalDescription: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
   },
-  filterOptionSimple: {
+  descriptionIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  modalDescriptionText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  modalDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  modalDetailItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 12,
+    borderRadius: 16,
   },
-  filterOptionSelected: {
-    backgroundColor: '#00FF7F',
+  detailIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  filterOptionText: {
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+  },
+  detailText: {
     fontSize: 14,
     color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
-  filterOptionTextSimple: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginLeft: 12,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
-  filterOptionTextSelected: {
-    color: '#000000',
-  },
-  filterActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  modalFooter: {
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
-  resetButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  modalButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
   },
-  resetButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
-  applyButton: {
-    backgroundColor: '#00FF7F',
-    paddingVertical: 12,
+  modalButtonGradient: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 24,
   },
-  applyButtonText: {
+  buttonIcon: {
+    marginRight: 8,
+  },
+  modalButtonText: {
+    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   listContent: {
@@ -1419,12 +1492,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
   },
-  detailText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    marginLeft: 4,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
   warningBanner: {
     backgroundColor: 'rgba(255, 0, 0, 0.1)',
     flexDirection: 'row',
@@ -1474,93 +1541,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
   },
-  plantDescription: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 8,
-    lineHeight: 16,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
-  quickViewContainer: {
-    width: '90%',
-    maxHeight: '80%',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
-  },
-  quickViewImage: {
-    width: '100%',
-    height: 200,
-  },
-  quickViewContent: {
-    padding: 16,
-  },
-  quickViewTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
-  },
-  quickViewSpecies: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontStyle: 'italic',
+  plantInfoPreview: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 8,
     marginBottom: 12,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    padding: 8,
+    borderRadius: 8,
   },
-  quickViewDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 12,
-  },
-  quickViewDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  quickViewDetailText: {
+  plantInfoPreviewText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
     marginLeft: 8,
-    fontSize: 14,
-    color: '#FFFFFF',
+    flex: 1,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
-  quickViewDescription: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
-    marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-  },
-  quickViewActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  quickViewButton: {
-    backgroundColor: '#00FF7F',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-  },
-  quickViewButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+    lineHeight: 16,
   },
   plantNameOverlay: {
     position: 'absolute',
