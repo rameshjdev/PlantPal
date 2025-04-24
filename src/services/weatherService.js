@@ -80,6 +80,7 @@ export const fetchWeatherData = async (coordinates) => {
       // Check if cache is valid and location hasn't changed significantly
       if (isCacheValid(parsedCache) && !hasLocationChanged(parsedCache.location, coordinates)) {
         console.log('Using cached weather data');
+        parsedCache.weatherData.location = formatLocation({ address: coordinates.address });
         return parsedCache.weatherData;
       }
     }
@@ -87,17 +88,20 @@ export const fetchWeatherData = async (coordinates) => {
     // Build query parameter
     const query = `${coordinates.latitude},${coordinates.longitude}`;
     
-    // Make API request to get current weather and forecast
+    // Make API request to get current weather
     const response = await axios.get(`${BASE_URL}/current.json`, {
       params: {
         key: API_KEY,
         q: query,
-        aqi: 'yes' // Include air quality data
+        aqi: 'no'
       }
     });
     
     // Format response data to match our app's structure
     const weatherData = formatWeatherData(response.data);
+    
+    // Update the location with our location service data
+    weatherData.location = formatLocation({ address: coordinates.address });
     
     // Cache the new data
     const newCache = {
@@ -112,23 +116,8 @@ export const fetchWeatherData = async (coordinates) => {
   } catch (error) {
     console.error('Error fetching weather data:', error);
     if (error.response) {
-      // Handle specific API errors
-      switch (error.response.status) {
-        case 401:
-          throw new Error('Invalid weather API key. Please check your configuration.');
-        case 403:
-          throw new Error('Weather API access denied. Please check your subscription.');
-        case 429:
-          throw new Error('Weather API rate limit exceeded. Please try again later.');
-        default:
-          throw new Error(`Weather API error: ${error.response.status} - ${error.response.data?.error?.message || 'Unknown error'}`);
-      }
+      throw new Error(`Weather API error: ${error.response.status} - ${error.response.data?.error?.message || 'Unknown error'}`);
     } else if (error.request) {
-      // If there's no network but we have cached data, return that
-      if (parsedCache && parsedCache.weatherData) {
-        console.log('Network error, using cached weather data');
-        return parsedCache.weatherData;
-      }
       throw new Error('No response from weather service. Please check your internet connection.');
     } else {
       throw error;
@@ -136,7 +125,7 @@ export const fetchWeatherData = async (coordinates) => {
   }
 };
 
-// Format the API response to match our app's data structure
+// Simplify the formatWeatherData function to only include current weather
 const formatWeatherData = (apiData) => {
   return {
     location: formatLocation(apiData.location),
@@ -150,12 +139,9 @@ const formatWeatherData = (apiData) => {
       pressure_mb: apiData.current.pressure_mb,
       feelslike_c: Math.round(apiData.current.feelslike_c),
       uv: apiData.current.uv,
-      air_quality: apiData.current.air_quality ? {
-        co: apiData.current.air_quality.co,
-        pm2_5: apiData.current.air_quality.pm2_5,
-        pm10: apiData.current.air_quality.pm10,
-        us_epa_index: apiData.current.air_quality.us_epa_index,
-      } : null
+      visibility_km: apiData.current.vis_km,
+      cloud: apiData.current.cloud,
+      precipitation: apiData.current.precip_mm
     },
     lastUpdated: new Date().toISOString()
   };
@@ -167,35 +153,44 @@ const formatLocation = (location) => {
   
   const parts = [];
   
-  // Add city name if available and not empty
-  if (location.name && location.name.trim()) {
-    // Handle special cases where city name might be too long
-    const cityName = location.name.trim();
-    if (cityName.length > 20) {
-      parts.push(cityName.substring(0, 20) + '...');
-    } else {
-      parts.push(cityName);
+  // Use the address data from our location service if available
+  if (location.address) {
+    if (location.address.city && location.address.city.trim()) {
+      parts.push(location.address.city.trim());
     }
-  }
-  
-  // Add region/state if available, different from city, and not empty
-  if (location.region && location.region.trim() && 
-      location.region.trim() !== location.name?.trim()) {
-    // Handle special cases for region names
-    const region = location.region.trim();
-    // Include state codes (2 characters) and longer region names
-    if (region.length >= 2) {
-      parts.push(region);
+    if (location.address.region && location.address.region.trim() && 
+        location.address.region.trim() !== location.address.city?.trim()) {
+      parts.push(location.address.region.trim());
     }
-  }
-  
-  // Add country if available, different from region, and not empty
-  if (location.country && location.country.trim() && 
-      location.country.trim() !== location.region?.trim()) {
-    // Handle special cases for country names
-    const country = location.country.trim();
-    if (country.length > 2) { // Skip if it's just a country code
-      parts.push(country);
+    if (location.address.country && location.address.country.trim() && 
+        location.address.country.trim() !== location.address.region?.trim()) {
+      parts.push(location.address.country.trim());
+    }
+  } else {
+    // Fallback to weather API location data
+    if (location.name && location.name.trim()) {
+      const cityName = location.name.trim();
+      if (cityName.length > 20) {
+        parts.push(cityName.substring(0, 20) + '...');
+      } else {
+        parts.push(cityName);
+      }
+    }
+    
+    if (location.region && location.region.trim() && 
+        location.region.trim() !== location.name?.trim()) {
+      const region = location.region.trim();
+      if (region.length >= 2) {
+        parts.push(region);
+      }
+    }
+    
+    if (location.country && location.country.trim() && 
+        location.country.trim() !== location.region?.trim()) {
+      const country = location.country.trim();
+      if (country.length > 2) {
+        parts.push(country);
+      }
     }
   }
   

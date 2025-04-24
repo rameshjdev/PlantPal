@@ -706,7 +706,7 @@ const HomeScreen = () => {
       );
     }
 
-    if (weatherStatus === 'loading' && !weatherData) {
+    if (weatherStatus === 'loading' || !weatherData) {
       return (
         <View style={styles.weatherLoadingContainer}>
           <ActivityIndicator size="small" color="#00FF7F" />
@@ -723,172 +723,69 @@ const HomeScreen = () => {
           end={{ x: 1, y: 1 }}
           style={styles.weatherGradient}
         >
-          {/* Refresh Button */}
-          <TouchableOpacity 
-            style={styles.refreshButton}
-            onPress={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <Animated.View style={{ transform: [{ rotate: spin }] }}>
-              <Ionicons name="refresh-outline" size={20} color="#00FF7F" />
-            </Animated.View>
-          </TouchableOpacity>
-
-          {/* Location */}
-          <View style={styles.locationContainer}>
-            <Ionicons name="location" size={18} color="#00FF7F" />
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.locationText}>{weatherData.location}</Text>
-              <Text style={styles.locationTimestamp}>
-                Updated {new Date(weatherData.lastUpdated).toLocaleTimeString()}
-              </Text>
+          {/* Header with Location and Refresh */}
+          <View style={styles.weatherHeader}>
+            <View style={styles.locationContainer}>
+              <Ionicons name="location" size={20} color="#00FF7F" />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationText}>{weatherData.location}</Text>
+                <Text style={styles.locationTimestamp}>
+                  Updated {new Date(weatherData.lastUpdated).toLocaleTimeString()}
+                </Text>
+              </View>
             </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                <Ionicons name="refresh-outline" size={20} color="#00FF7F" />
+              </Animated.View>
+            </TouchableOpacity>
           </View>
 
-          {/* Current Weather */}
-          <View style={styles.currentWeatherContainer}>
+          {/* Current Weather Card */}
+          <View style={styles.currentWeatherCard}>
             <View style={styles.temperatureContainer}>
               <Text style={styles.temperatureText}>{weatherData.current.temp}°</Text>
               <Text style={styles.conditionText}>{weatherData.current.condition}</Text>
             </View>
-            <View style={styles.weatherDetailsContainer}>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="water-outline" size={16} color="#00FF7F" />
-                <Text style={styles.weatherDetailText}>{weatherData.current.humidity}%</Text>
-              </View>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="speedometer-outline" size={16} color="#00FF7F" />
-                <Text style={styles.weatherDetailText}>{weatherData.current.wind_kph} km/h</Text>
-              </View>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="thermometer-outline" size={16} color="#00FF7F" />
-                <Text style={styles.weatherDetailText}>Feels {weatherData.current.feelslike_c}°</Text>
-              </View>
-            </View>
             
-            {/* Air Quality */}
-            {weatherData.current.air_quality && (
-              <View style={styles.airQualityContainer}>
-                <Text style={styles.airQualityTitle}>Air Quality</Text>
-                <View style={styles.airQualityDetails}>
-                  <View style={styles.airQualityItem}>
-                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
-                    <Text style={styles.airQualityText}>PM2.5: {weatherData.current.air_quality.pm2_5}</Text>
-                  </View>
-                  <View style={styles.airQualityItem}>
-                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
-                    <Text style={styles.airQualityText}>PM10: {weatherData.current.air_quality.pm10}</Text>
-                  </View>
-                  <View style={styles.airQualityItem}>
-                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
-                    <Text style={styles.airQualityText}>CO: {weatherData.current.air_quality.co}</Text>
-                  </View>
+            {/* Weather Details Grid */}
+            <View style={styles.weatherDetailsGrid}>
+              <View style={styles.weatherDetailItem}>
+                <Ionicons name="water-outline" size={20} color="#00FF7F" />
+                <View style={styles.weatherDetailTextContainer}>
+                  <Text style={styles.weatherDetailLabel}>Humidity</Text>
+                  <Text style={styles.weatherDetailValue}>{weatherData.current.humidity}%</Text>
                 </View>
               </View>
-            )}
+              <View style={styles.weatherDetailItem}>
+                <Ionicons name="speedometer-outline" size={20} color="#00FF7F" />
+                <View style={styles.weatherDetailTextContainer}>
+                  <Text style={styles.weatherDetailLabel}>Wind</Text>
+                  <Text style={styles.weatherDetailValue}>{weatherData.current.wind_kph} km/h</Text>
+                </View>
+              </View>
+              <View style={styles.weatherDetailItem}>
+                <Ionicons name="thermometer-outline" size={20} color="#00FF7F" />
+                <View style={styles.weatherDetailTextContainer}>
+                  <Text style={styles.weatherDetailLabel}>Feels Like</Text>
+                  <Text style={styles.weatherDetailValue}>{weatherData.current.feelslike_c}°</Text>
+                </View>
+              </View>
+              <View style={styles.weatherDetailItem}>
+                <Ionicons name="sunny-outline" size={20} color="#00FF7F" />
+                <View style={styles.weatherDetailTextContainer}>
+                  <Text style={styles.weatherDetailLabel}>UV Index</Text>
+                  <Text style={styles.weatherDetailValue}>{weatherData.current.uv}</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </LinearGradient>
       </View>
-    );
-  };
-
-  const renderForecastModal = () => {
-    if (!selectedForecast) return null;
-
-    return (
-      <Modal
-        visible={isForecastModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsForecastModalVisible(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsForecastModalVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            <LinearGradient
-              colors={['#1A1A1A', '#000000']}
-              style={styles.modalGradient}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{selectedForecast.day}</Text>
-                <TouchableOpacity 
-                  style={styles.modalCloseButton}
-                  onPress={() => setIsForecastModalVisible(false)}
-                >
-                  <Ionicons name="close" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.modalBody}>
-                <View style={styles.modalTemperatureContainer}>
-                  <Text style={styles.modalTemperatureText}>{selectedForecast.temp}°</Text>
-                  <Text style={styles.modalConditionText}>{selectedForecast.condition}</Text>
-                </View>
-
-                <View style={styles.modalDetailsContainer}>
-                  <View style={styles.modalDetailItem}>
-                    <Ionicons name="water-outline" size={20} color="#00FF7F" />
-                    <View style={styles.modalDetailTextContainer}>
-                      <Text style={styles.modalDetailLabel}>Humidity</Text>
-                      <Text style={styles.modalDetailValue}>{selectedForecast.humidity}%</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalDetailItem}>
-                    <Ionicons name="speedometer-outline" size={20} color="#00FF7F" />
-                    <View style={styles.modalDetailTextContainer}>
-                      <Text style={styles.modalDetailLabel}>Wind Speed</Text>
-                      <Text style={styles.modalDetailValue}>{selectedForecast.wind_kph} km/h</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalDetailItem}>
-                    <Ionicons name="rainy-outline" size={20} color="#00FF7F" />
-                    <View style={styles.modalDetailTextContainer}>
-                      <Text style={styles.modalDetailLabel}>Precipitation</Text>
-                      <Text style={styles.modalDetailValue}>{selectedForecast.precipitation}%</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalDetailItem}>
-                    <Ionicons name="sunny-outline" size={20} color="#00FF7F" />
-                    <View style={styles.modalDetailTextContainer}>
-                      <Text style={styles.modalDetailLabel}>UV Index</Text>
-                      <Text style={styles.modalDetailValue}>{selectedForecast.uv}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.modalHourlyContainer}>
-                  <Text style={styles.modalHourlyTitle}>Hourly Forecast</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.modalHourlyScroll}
-                  >
-                    {selectedForecast.hourly?.map((hour, index) => (
-                      <View key={index} style={styles.modalHourlyItem}>
-                        <Text style={styles.modalHourlyTime}>{hour.time}</Text>
-                        <Text style={styles.modalHourlyTemp}>{hour.temp}°</Text>
-                        <Text style={styles.modalHourlyCondition}>{hour.condition}</Text>
-                        {hour.precipitation > 0 && (
-                          <View style={styles.modalHourlyRainContainer}>
-                            <Ionicons name="rainy-outline" size={12} color="#00FF7F" />
-                            <Text style={styles.modalHourlyRainText}>{hour.precipitation}%</Text>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-            </LinearGradient>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     );
   };
 
@@ -1120,7 +1017,6 @@ const HomeScreen = () => {
           <View style={styles.bottomSpace} />
         </View>
       </Animated.ScrollView>
-      {renderForecastModal()}
     </SafeAreaView>
   );
 };
@@ -1585,7 +1481,7 @@ const styles = StyleSheet.create({
   },
   weatherSection: {
     marginBottom: 24,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
     elevation: 4,
     shadowColor: '#000',
@@ -1596,148 +1492,20 @@ const styles = StyleSheet.create({
   weatherGradient: {
     padding: 20,
   },
-  weatherLoadingContainer: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-  },
-  weatherLoadingText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#00FF7F',
-  },
-  weatherErrorContainer: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-    flexDirection: 'column',
-  },
-  weatherErrorText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#FF453A',
-  },
-  currentWeatherContainer: {
-    marginBottom: 24,
-  },
-  temperatureContainer: {
-    marginBottom: 16,
-  },
-  temperatureText: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  conditionText: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  weatherDetailsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  weatherDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weatherDetailText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: '#00FF7F',
-  },
-  forecastContainer: {
-    marginBottom: 24,
-  },
-  forecastHeader: {
+  weatherHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  forecastToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  forecastToggleText: {
-    color: '#00FF7F',
-    fontSize: 14,
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  forecastScrollContent: {
-    paddingRight: 16,
-  },
-  forecastDayContainer: {
-    marginRight: 12,
-    width: 100,
-  },
-  forecastGradient: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  forecastDayText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  forecastTempText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  forecastConditionText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  rainChanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rainChanceText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#00FF7F',
-  },
-  refreshButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 1,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 20,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     backgroundColor: 'rgba(0, 255, 127, 0.1)',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
+    flex: 1,
+    marginRight: 12,
   },
   locationTextContainer: {
     marginLeft: 12,
@@ -1753,6 +1521,121 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
   },
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  currentWeatherCard: {
+    backgroundColor: 'rgba(0, 255, 127, 0.05)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+  },
+  temperatureContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  temperatureText: {
+    fontSize: 72,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  conditionText: {
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  weatherDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  weatherDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    padding: 12,
+    borderRadius: 16,
+    flex: 1,
+    minWidth: '45%',
+  },
+  weatherDetailTextContainer: {
+    marginLeft: 12,
+  },
+  weatherDetailLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 2,
+  },
+  weatherDetailValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  forecastCard: {
+    backgroundColor: 'rgba(0, 255, 127, 0.05)',
+    borderRadius: 20,
+    padding: 20,
+  },
+  forecastTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  forecastGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  forecastItem: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+  },
+  forecastDay: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  forecastTemp: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  forecastCondition: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  forecastDetails: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  forecastDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  forecastDetailText: {
+    marginLeft: 2,
+    fontSize: 10,
+    color: '#00FF7F',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -1762,64 +1645,71 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 400,
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     overflow: 'hidden',
-  },
-  modalGradient: {
-    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 255, 127, 0.1)',
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   modalCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
   },
   modalBody: {
-    gap: 20,
+    padding: 20,
   },
   modalTemperatureContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
   modalTemperatureText: {
-    fontSize: 64,
+    fontSize: 48,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
   },
   modalConditionText: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
   },
-  modalDetailsContainer: {
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
+  modalTempRange: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalTempRangeText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  modalDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
   },
   modalDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    padding: 12,
+    borderRadius: 16,
+    flex: 1,
+    minWidth: '45%',
   },
   modalDetailTextContainer: {
     marginLeft: 12,
-    flex: 1,
   },
   modalDetailLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 2,
   },
@@ -1828,44 +1718,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  modalHourlyContainer: {
-    marginTop: 8,
+  hourlyForecast: {
+    marginTop: 20,
   },
-  modalHourlyTitle: {
-    fontSize: 18,
+  hourlyForecastTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 12,
   },
-  modalHourlyScroll: {
-    paddingRight: 16,
-  },
-  modalHourlyItem: {
+  hourlyItem: {
     backgroundColor: 'rgba(0, 255, 127, 0.1)',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     marginRight: 12,
     alignItems: 'center',
     minWidth: 80,
   },
-  modalHourlyTime: {
+  hourlyTime: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
   },
-  modalHourlyTemp: {
-    fontSize: 18,
+  hourlyTemp: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  modalHourlyCondition: {
+  hourlyCondition: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 4,
   },
-  modalHourlyRainContainer: {
+  rainChanceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 127, 0.2)',
@@ -1873,97 +1760,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 8,
   },
-  modalHourlyRainText: {
+  rainChanceText: {
     marginLeft: 2,
     fontSize: 10,
-    color: '#00FF7F',
-  },
-  detailedForecastContainer: {
-    gap: 12,
-  },
-  detailedForecastCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  detailedForecastGradient: {
-    padding: 16,
-  },
-  detailedForecastHeader: {
-    marginBottom: 12,
-  },
-  detailedForecastDay: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  detailedForecastDate: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  detailedForecastContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailedForecastMain: {
-    flex: 1,
-  },
-  detailedForecastTemp: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  detailedForecastCondition: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  detailedForecastDetails: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  detailedForecastDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  detailedForecastDetailText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#00FF7F',
-  },
-  airQualityContainer: {
-    marginTop: 16,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  airQualityTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  airQualityDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  airQualityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  airQualityText: {
-    marginLeft: 6,
-    fontSize: 14,
     color: '#00FF7F',
   },
 });
