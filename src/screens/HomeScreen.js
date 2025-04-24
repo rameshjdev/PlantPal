@@ -325,8 +325,8 @@ const HomeScreen = () => {
       
       try {
         // First fetch plants and reminders
-        await dispatch(fetchPlants());
-        await dispatch(fetchReminders());
+        dispatch(fetchPlants());
+        dispatch(fetchReminders());
 
         // Then check location settings and handle weather data
         const hasLocationEnabled = await checkLocationSettings();
@@ -334,7 +334,7 @@ const HomeScreen = () => {
           try {
             const location = await getCurrentLocation();
             if (location) {
-              await dispatch(fetchWeather(location));
+              dispatch(fetchWeather(location));
             }
           } catch (weatherErr) {
             console.error('Error fetching weather:', weatherErr);
@@ -544,7 +544,7 @@ const HomeScreen = () => {
     try {
       const location = await getCurrentLocation();
       if (location) {
-        await dispatch(fetchWeather(location));
+        dispatch(fetchWeather(location));
       }
     } catch (err) {
       console.error('Error refreshing weather:', err);
@@ -765,10 +765,28 @@ const HomeScreen = () => {
                 <Text style={styles.weatherDetailText}>Feels {weatherData.current.feelslike_c}°</Text>
               </View>
             </View>
+            
+            {/* Air Quality */}
+            {weatherData.current.air_quality && (
+              <View style={styles.airQualityContainer}>
+                <Text style={styles.airQualityTitle}>Air Quality</Text>
+                <View style={styles.airQualityDetails}>
+                  <View style={styles.airQualityItem}>
+                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
+                    <Text style={styles.airQualityText}>PM2.5: {weatherData.current.air_quality.pm2_5}</Text>
+                  </View>
+                  <View style={styles.airQualityItem}>
+                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
+                    <Text style={styles.airQualityText}>PM10: {weatherData.current.air_quality.pm10}</Text>
+                  </View>
+                  <View style={styles.airQualityItem}>
+                    <Ionicons name="cloud-outline" size={16} color="#00FF7F" />
+                    <Text style={styles.airQualityText}>CO: {weatherData.current.air_quality.co}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
-
-          {/* Forecast */}
-          {renderForecastView()}
         </LinearGradient>
       </View>
     );
@@ -1921,6 +1939,31 @@ const styles = StyleSheet.create({
   detailedForecastDetailText: {
     marginLeft: 4,
     fontSize: 12,
+    color: '#00FF7F',
+  },
+  airQualityContainer: {
+    marginTop: 16,
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  airQualityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  airQualityDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  airQualityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  airQualityText: {
+    marginLeft: 6,
+    fontSize: 14,
     color: '#00FF7F',
   },
 });

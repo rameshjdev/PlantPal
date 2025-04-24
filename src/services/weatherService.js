@@ -87,14 +87,12 @@ export const fetchWeatherData = async (coordinates) => {
     // Build query parameter
     const query = `${coordinates.latitude},${coordinates.longitude}`;
     
-    // Make API request to get forecast for 5 days
-    const response = await axios.get(`${BASE_URL}/forecast.json`, {
+    // Make API request to get current weather and forecast
+    const response = await axios.get(`${BASE_URL}/current.json`, {
       params: {
         key: API_KEY,
         q: query,
-        days: 5,
-        aqi: 'yes', // Include air quality data
-        alerts: 'yes' // Include weather alerts
+        aqi: 'yes' // Include air quality data
       }
     });
     
@@ -140,52 +138,6 @@ export const fetchWeatherData = async (coordinates) => {
 
 // Format the API response to match our app's data structure
 const formatWeatherData = (apiData) => {
-  // Get day names for the forecast
-  const getDayName = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { weekday: 'short' });
-  };
-  
-  // Format forecast data
-  const formattedForecast = apiData.forecast.forecastday.map(day => ({
-    day: day.date === apiData.forecast.forecastday[0].date ? 'Today' : getDayName(day.date),
-    temp: Math.round(day.day.avgtemp_c),
-    condition: day.day.condition.text,
-    icon: day.day.condition.icon,
-    precipitation: day.day.daily_chance_of_rain,
-    humidity: day.day.avghumidity,
-    wind_kph: Math.round(day.day.maxwind_kph),
-    uv: day.day.uv,
-    date: day.date,
-    hourly: day.hour.map(hour => ({
-      time: new Date(hour.time).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }),
-      temp: Math.round(hour.temp_c),
-      condition: hour.condition.text,
-      icon: hour.condition.icon,
-      humidity: hour.humidity,
-      wind_kph: Math.round(hour.wind_kph),
-      precipitation: hour.chance_of_rain
-    }))
-  }));
-  
-  // Format alerts if any
-  const formattedAlerts = [];
-  if (apiData.alerts && apiData.alerts.alert && apiData.alerts.alert.length > 0) {
-    apiData.alerts.alert.forEach(alert => {
-      // Parse the alert text to extract key information
-      const alertInfo = parseAlertText(alert.desc);
-      formattedAlerts.push({
-        type: alert.category.toLowerCase(),
-        title: alertInfo.title || alert.event || 'Weather Alert',
-        message: alertInfo.message || alert.desc,
-        severity: alertInfo.severity || 'warning',
-        expires: alert.expires || null,
-        areas: alertInfo.areas || []
-      });
-    });
-  }
-  
-  // Return formatted data
   return {
     location: formatLocation(apiData.location),
     current: {
@@ -205,8 +157,6 @@ const formatWeatherData = (apiData) => {
         us_epa_index: apiData.current.air_quality.us_epa_index,
       } : null
     },
-    forecast: formattedForecast,
-    alerts: formattedAlerts,
     lastUpdated: new Date().toISOString()
   };
 };
@@ -217,27 +167,59 @@ const formatLocation = (location) => {
   
   const parts = [];
   
-  // Add city name if available
-  if (location.name) {
-    parts.push(location.name);
+  // Add city name if available and not empty
+  if (location.name && location.name.trim()) {
+    // Handle special cases where city name might be too long
+    const cityName = location.name.trim();
+    if (cityName.length > 20) {
+      parts.push(cityName.substring(0, 20) + '...');
+    } else {
+      parts.push(cityName);
+    }
   }
   
-  // Add region/state if available and different from city
-  if (location.region && location.region !== location.name) {
-    parts.push(location.region);
+  // Add region/state if available, different from city, and not empty
+  if (location.region && location.region.trim() && 
+      location.region.trim() !== location.name?.trim()) {
+    // Handle special cases for region names
+    const region = location.region.trim();
+    // Include state codes (2 characters) and longer region names
+    if (region.length >= 2) {
+      parts.push(region);
+    }
   }
   
-  // Add country if available and different from region
-  if (location.country && location.country !== location.region) {
-    parts.push(location.country);
+  // Add country if available, different from region, and not empty
+  if (location.country && location.country.trim() && 
+      location.country.trim() !== location.region?.trim()) {
+    // Handle special cases for country names
+    const country = location.country.trim();
+    if (country.length > 2) { // Skip if it's just a country code
+      parts.push(country);
+    }
   }
   
   // If we have no parts, try to use lat/long
-  if (parts.length === 0 && location.lat && location.lon) {
-    return `${location.lat.toFixed(2)}°N, ${location.lon.toFixed(2)}°E`;
+  if (parts.length === 0) {
+    if (location.lat && location.lon) {
+      const lat = parseFloat(location.lat);
+      const lon = parseFloat(location.lon);
+      const latDir = lat >= 0 ? 'N' : 'S';
+      const lonDir = lon >= 0 ? 'E' : 'W';
+      return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lon).toFixed(2)}°${lonDir}`;
+    }
+    return 'Unknown Location';
   }
   
-  return parts.join(', ');
+  // Join parts with comma and space, ensuring no double commas
+  const formattedLocation = parts.filter(part => part).join(', ');
+  
+  // Handle special case where location might be too long
+  if (formattedLocation.length > 50) {
+    return formattedLocation.substring(0, 47) + '...';
+  }
+  
+  return formattedLocation;
 };
 
 // Helper function to parse alert text
