@@ -80,25 +80,35 @@ export const fetchWeatherData = async (coordinates) => {
       // Check if cache is valid and location hasn't changed significantly
       if (isCacheValid(parsedCache) && !hasLocationChanged(parsedCache.location, coordinates)) {
         console.log('Using cached weather data');
-        parsedCache.weatherData.location = formatLocation({ address: coordinates.address });
-        return parsedCache.weatherData;
+        // Ensure cached data has forecast
+        if (!parsedCache.weatherData.forecast) {
+          console.log('Cached data missing forecast, fetching new data');
+        } else {
+          parsedCache.weatherData.location = formatLocation({ address: coordinates.address });
+          return parsedCache.weatherData;
+        }
       }
     }
 
     // Build query parameter
     const query = `${coordinates.latitude},${coordinates.longitude}`;
     
-    // Make API request to get current weather
-    const response = await axios.get(`${BASE_URL}/current.json`, {
+    // Make API request to get current weather and forecast
+    const response = await axios.get(`${BASE_URL}/forecast.json`, {
       params: {
         key: API_KEY,
         q: query,
+        days: 3, // Get 3 days of forecast
         aqi: 'no'
       }
     });
     
+    console.log('Weather API Response:', response.data);
+    
     // Format response data to match our app's structure
     const weatherData = formatWeatherData(response.data);
+    
+    console.log('Formatted Weather Data:', weatherData);
     
     // Update the location with our location service data
     weatherData.location = formatLocation({ address: coordinates.address });
@@ -125,8 +135,54 @@ export const fetchWeatherData = async (coordinates) => {
   }
 };
 
-// Simplify the formatWeatherData function to only include current weather
+// Update the formatWeatherData function to include forecast data
 const formatWeatherData = (apiData) => {
+  console.log('API Data:', apiData);
+  
+  if (!apiData || !apiData.forecast || !apiData.forecast.forecastday) {
+    console.error('Invalid API data structure:', apiData);
+    return {
+      location: formatLocation(apiData?.location),
+      current: {
+        temp: Math.round(apiData?.current?.temp_c || 0),
+        humidity: apiData?.current?.humidity || 0,
+        condition: apiData?.current?.condition?.text || 'Unknown',
+        icon: apiData?.current?.condition?.icon || '',
+        wind_kph: Math.round(apiData?.current?.wind_kph || 0),
+        wind_dir: apiData?.current?.wind_dir || '',
+        pressure_mb: apiData?.current?.pressure_mb || 0,
+        feelslike_c: Math.round(apiData?.current?.feelslike_c || 0),
+        uv: apiData?.current?.uv || 0,
+        visibility_km: apiData?.current?.vis_km || 0,
+        cloud: apiData?.current?.cloud || 0,
+        precipitation: apiData?.current?.precip_mm || 0
+      },
+      nextDay: null,
+      lastUpdated: new Date().toISOString()
+    };
+  }
+
+  // Get tomorrow's forecast (index 1 in the array)
+  const tomorrowForecast = apiData.forecast.forecastday[1];
+  const nextDay = tomorrowForecast ? {
+    date: tomorrowForecast.date,
+    day: 'Tomorrow',
+    temp: Math.round(tomorrowForecast.day.avgtemp_c),
+    max_temp: Math.round(tomorrowForecast.day.maxtemp_c),
+    min_temp: Math.round(tomorrowForecast.day.mintemp_c),
+    condition: tomorrowForecast.day.condition.text,
+    icon: tomorrowForecast.day.condition.icon,
+    humidity: tomorrowForecast.day.avghumidity,
+    wind_kph: Math.round(tomorrowForecast.day.maxwind_kph),
+    precipitation: tomorrowForecast.day.totalprecip_mm,
+    chance_of_rain: tomorrowForecast.day.daily_chance_of_rain,
+    chance_of_snow: tomorrowForecast.day.daily_chance_of_snow,
+    uv: tomorrowForecast.day.uv,
+    sunrise: tomorrowForecast.astro.sunrise,
+    sunset: tomorrowForecast.astro.sunset,
+    moon_phase: tomorrowForecast.astro.moon_phase
+  } : null;
+
   return {
     location: formatLocation(apiData.location),
     current: {
@@ -143,6 +199,7 @@ const formatWeatherData = (apiData) => {
       cloud: apiData.current.cloud,
       precipitation: apiData.current.precip_mm
     },
+    nextDay,
     lastUpdated: new Date().toISOString()
   };
 };

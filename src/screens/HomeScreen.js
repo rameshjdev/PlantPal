@@ -293,6 +293,246 @@ const HomeScreen = () => {
   const [selectedForecast, setSelectedForecast] = useState(null);
   const [isForecastModalVisible, setIsForecastModalVisible] = useState(false);
   const [showDetailedForecast, setShowDetailedForecast] = useState(false);
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [plantCareSuggestions, setPlantCareSuggestions] = useState([]);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState(new Set());
+  const userPlants = useSelector(selectUserPlants);
+  const popularPlants = useSelector(selectPopularPlants);
+  const todayReminders = useSelector(selectTodayReminders);
+  const plantCategories = useSelector(selectPlantCategories);
+
+  // Plant type thresholds
+  const PLANT_THRESHOLDS = {
+    tropical: {
+      minTemp: 18,
+      maxTemp: 30,
+      minHumidity: 60,
+      maxHumidity: 90,
+      light: 'bright indirect',
+      watering: 'frequent'
+    },
+    succulent: {
+      minTemp: 10,
+      maxTemp: 35,
+      minHumidity: 30,
+      maxHumidity: 50,
+      light: 'direct',
+      watering: 'sparse'
+    },
+    temperate: {
+      minTemp: 5,
+      maxTemp: 25,
+      minHumidity: 40,
+      maxHumidity: 70,
+      light: 'partial',
+      watering: 'moderate'
+    },
+    desert: {
+      minTemp: 15,
+      maxTemp: 40,
+      minHumidity: 20,
+      maxHumidity: 40,
+      light: 'direct',
+      watering: 'very sparse'
+    }
+  };
+
+  // Helper function to get plant type
+  const getPlantType = (plant) => {
+    if (!plant || !plant.category) return 'temperate';
+    
+    const category = typeof plant.category === 'string' 
+      ? plant.category.toLowerCase() 
+      : Array.isArray(plant.category) 
+        ? plant.category[0]?.toLowerCase() 
+        : '';
+    
+    if (category.includes('tropical')) return 'tropical';
+    if (category.includes('succulent')) return 'succulent';
+    if (category.includes('cactus')) return 'desert';
+    return 'temperate';
+  };
+
+  const generatePlantCareSuggestions = (weatherData, plants) => {
+    const suggestions = [];
+    
+    // Check current weather conditions
+    if (weatherData.current && Array.isArray(plants)) {
+      // Temperature checks for each plant type
+      plants.forEach(plant => {
+        if (!plant || !plant.id || !plant.name) return;
+        
+        const plantType = getPlantType(plant);
+        const thresholds = PLANT_THRESHOLDS[plantType];
+        
+        if (!thresholds) return;
+        
+        if (weatherData.current.temp > thresholds.maxTemp) {
+          suggestions.push({
+            id: `high-temp-${plant.id}`,
+            icon: 'thermometer',
+            message: `${plant.name} is sensitive to high temperatures. Move to a cooler spot.`,
+            priority: 'high',
+            type: 'temperature',
+            plantId: plant.id,
+            plantName: plant.name
+          });
+        }
+        
+        if (weatherData.current.temp < thresholds.minTemp) {
+          suggestions.push({
+            id: `low-temp-${plant.id}`,
+            icon: 'snow',
+            message: `${plant.name} needs protection from cold temperatures.`,
+            priority: 'high',
+            type: 'temperature',
+            plantId: plant.id,
+            plantName: plant.name
+          });
+        }
+        
+        if (weatherData.current.humidity < thresholds.minHumidity) {
+          suggestions.push({
+            id: `low-humidity-${plant.id}`,
+            icon: 'water',
+            message: `${plant.name} needs higher humidity. Consider misting or using a humidifier.`,
+            priority: 'medium',
+            type: 'humidity',
+            plantId: plant.id,
+            plantName: plant.name
+          });
+        }
+        
+        if (weatherData.current.uv > 6 && thresholds.light !== 'direct') {
+          suggestions.push({
+            id: `high-uv-${plant.id}`,
+            icon: 'sunny',
+            message: `${plant.name} needs protection from intense sunlight.`,
+            priority: 'medium',
+            type: 'light',
+            plantId: plant.id,
+            plantName: plant.name
+          });
+        }
+      });
+
+      // Rain chance and watering schedule
+      if (weatherData.current.chance_of_rain > 50) {
+        const outdoorPlants = plants.filter(p => p.location?.toLowerCase().includes('outdoor'));
+        if (outdoorPlants.length > 0) {
+          suggestions.push({
+            id: 'rain-warning',
+            icon: 'rainy',
+            message: `Skip watering for outdoor plants: ${outdoorPlants.map(p => p.name).join(', ')}`,
+            priority: 'medium',
+            type: 'watering',
+            plantIds: outdoorPlants.map(p => p.id)
+          });
+        }
+      }
+
+      // Watering schedule based on plant type and weather
+      plants.forEach(plant => {
+        const plantType = getPlantType(plant);
+        const thresholds = PLANT_THRESHOLDS[plantType];
+        
+        if (weatherData.current.temp > 25 && thresholds.watering === 'frequent') {
+          suggestions.push({
+            id: `watering-${plant.id}`,
+            icon: 'water',
+            message: `${plant.name} needs extra watering due to high temperatures.`,
+            priority: 'medium',
+            type: 'watering',
+            plantId: plant.id,
+            plantName: plant.name
+          });
+        }
+      });
+    }
+
+    // Check tomorrow's forecast
+    if (weatherData.nextDay) {
+      // Temperature change warning
+      const tempChange = Math.abs(weatherData.nextDay.temp - weatherData.current.temp);
+      if (tempChange > 10) {
+        const affectedPlants = plants.filter(plant => {
+          const plantType = getPlantType(plant);
+          const thresholds = PLANT_THRESHOLDS[plantType];
+          return Math.abs(weatherData.nextDay.temp - thresholds.minTemp) < 5 || 
+                 Math.abs(weatherData.nextDay.temp - thresholds.maxTemp) < 5;
+        });
+
+        if (affectedPlants.length > 0) {
+          suggestions.push({
+            id: 'temp-change',
+            icon: 'alert',
+            message: `Significant temperature change tomorrow. Protect: ${affectedPlants.map(p => p.name).join(', ')}`,
+            priority: 'high',
+            type: 'temperature',
+            plantIds: affectedPlants.map(p => p.id)
+          });
+        }
+      }
+
+      // Rain forecast
+      if (weatherData.nextDay.chance_of_rain > 70) {
+        const sensitivePlants = plants.filter(plant => {
+          const plantType = getPlantType(plant);
+          return plantType === 'succulent' || plantType === 'desert';
+        });
+
+        if (sensitivePlants.length > 0) {
+          suggestions.push({
+            id: 'heavy-rain',
+            icon: 'rainy',
+            message: `Heavy rain expected. Move indoors: ${sensitivePlants.map(p => p.name).join(', ')}`,
+            priority: 'high',
+            type: 'watering',
+            plantIds: sensitivePlants.map(p => p.id)
+          });
+        }
+      }
+    }
+
+    return suggestions;
+  };
+
+  const handleDismissSuggestion = (suggestionId) => {
+    setDismissedSuggestions(prev => {
+      const newSet = new Set(prev);
+      newSet.add(suggestionId);
+      return newSet;
+    });
+  };
+
+  const scheduleNotification = (suggestion) => {
+    if (suggestion.priority === 'high') {
+      // Schedule notification for high priority suggestions
+      const notification = {
+        title: 'Plant Care Alert',
+        body: suggestion.message,
+        data: { suggestionId: suggestion.id, plantId: suggestion.plantId },
+        trigger: { seconds: 3600 }, // 1 hour from now
+      };
+      // Implement notification scheduling here
+      // You'll need to use a notification library like expo-notifications
+    }
+  };
+
+  useEffect(() => {
+    if (weatherData) {
+      const suggestions = generatePlantCareSuggestions(weatherData, userPlants);
+      const filteredSuggestions = suggestions.filter(s => !dismissedSuggestions.has(s.id));
+      setPlantCareSuggestions(filteredSuggestions);
+      
+      // Schedule notifications for new high priority suggestions
+      suggestions.forEach(suggestion => {
+        if (suggestion.priority === 'high' && !dismissedSuggestions.has(suggestion.id)) {
+          scheduleNotification(suggestion);
+        }
+      });
+    }
+  }, [weatherData, dismissedSuggestions, userPlants]);
 
   // Check location settings
   const checkLocationSettings = async () => {
@@ -365,11 +605,6 @@ const HomeScreen = () => {
     return unsubscribe;
   }, [navigation]);
 
-  const userPlants = useSelector(selectUserPlants);
-  const popularPlants = useSelector(selectPopularPlants);
-  const todayReminders = useSelector(selectTodayReminders);
-  const plantCategories = useSelector(selectPlantCategories);
-  
   const handleRemovePlant = (plantId) => {
     Alert.alert(
       "Remove Plant",
@@ -562,110 +797,75 @@ const HomeScreen = () => {
   });
 
   const renderForecastView = () => {
-    if (!weatherData?.forecast) return null;
+    if (!weatherData?.nextDay) return null;
 
     return (
       <View style={styles.forecastContainer}>
-        <View style={styles.forecastHeader}>
-          <Text style={styles.forecastTitle}>3-Day Forecast</Text>
-          <TouchableOpacity 
-            style={styles.forecastToggleButton}
-            onPress={() => setShowDetailedForecast(!showDetailedForecast)}
-          >
-            <Text style={styles.forecastToggleText}>
-              {showDetailedForecast ? 'Show Summary' : 'Show Details'}
-            </Text>
-            <Ionicons 
-              name={showDetailedForecast ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color="#00FF7F" 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {showDetailedForecast ? (
-          <View style={styles.detailedForecastContainer}>
-            {weatherData.forecast.slice(0, 3).map((day, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.detailedForecastCard}
-                onPress={() => {
-                  setSelectedForecast(day);
-                  setIsForecastModalVisible(true);
-                }}
-              >
-                <LinearGradient
-                  colors={['rgba(0, 255, 127, 0.1)', 'rgba(0, 255, 127, 0.05)']}
-                  style={styles.detailedForecastGradient}
-                >
-                  <View style={styles.detailedForecastHeader}>
-                    <Text style={styles.detailedForecastDay}>{day.day}</Text>
-                    <Text style={styles.detailedForecastDate}>
-                      {new Date(day.date).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailedForecastContent}>
-                    <View style={styles.detailedForecastMain}>
-                      <Text style={styles.detailedForecastTemp}>{day.temp}°</Text>
-                      <Text style={styles.detailedForecastCondition}>{day.condition}</Text>
-                    </View>
-
-                    <View style={styles.detailedForecastDetails}>
-                      <View style={styles.detailedForecastDetailItem}>
-                        <Ionicons name="water-outline" size={16} color="#00FF7F" />
-                        <Text style={styles.detailedForecastDetailText}>{day.humidity}%</Text>
-                      </View>
-                      <View style={styles.detailedForecastDetailItem}>
-                        <Ionicons name="speedometer-outline" size={16} color="#00FF7F" />
-                        <Text style={styles.detailedForecastDetailText}>{day.wind_kph} km/h</Text>
-                      </View>
-                      <View style={styles.detailedForecastDetailItem}>
-                        <Ionicons name="rainy-outline" size={16} color="#00FF7F" />
-                        <Text style={styles.detailedForecastDetailText}>{day.precipitation}%</Text>
-                      </View>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+        <Text style={styles.forecastTitle}>Tomorrow's Forecast</Text>
+        <View style={styles.nextDayCard}>
+          <Text style={styles.nextDayTemp}>{weatherData.nextDay.temp}°</Text>
+          <Text style={styles.nextDayCondition}>{weatherData.nextDay.condition}</Text>
+          <View style={styles.nextDayMetrics}>
+            <View style={styles.metricItem}>
+              <Ionicons name="water-outline" size={16} color="#00FF7F" />
+              <Text style={styles.metricValue}>{weatherData.nextDay.humidity}%</Text>
+            </View>
+            <View style={styles.metricItem}>
+              <Ionicons name="rainy-outline" size={16} color="#00FF7F" />
+              <Text style={styles.metricValue}>{weatherData.nextDay.chance_of_rain}%</Text>
+            </View>
           </View>
-        ) : (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.forecastScrollContent}
-          >
-            {weatherData.forecast.slice(0, 3).map((day, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.forecastDayContainer}
-                onPress={() => {
-                  setSelectedForecast(day);
-                  setIsForecastModalVisible(true);
-                }}
-              >
-                <LinearGradient
-                  colors={['rgba(0, 255, 127, 0.1)', 'rgba(0, 255, 127, 0.05)']}
-                  style={styles.forecastGradient}
+        </View>
+      </View>
+    );
+  };
+
+  const renderPlantCareSuggestions = () => {
+    if (plantCareSuggestions.length === 0) return null;
+
+    return (
+      <View style={styles.plantCareContainer}>
+        <Text style={styles.plantCareTitle}>Plant Care Suggestions</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.plantCareScroll}
+        >
+          {plantCareSuggestions.map((suggestion) => (
+            <View 
+              key={suggestion.id} 
+              style={[
+                styles.plantCareCard,
+                suggestion.priority === 'high' && styles.highPriorityCard
+              ]}
+            >
+              <View style={styles.plantCareHeader}>
+                <View style={styles.plantCareIconContainer}>
+                  <Ionicons 
+                    name={`${suggestion.icon}-outline`} 
+                    size={24} 
+                    color={suggestion.priority === 'high' ? '#FF453A' : '#00FF7F'} 
+                  />
+                </View>
+                <TouchableOpacity 
+                  style={styles.dismissButton}
+                  onPress={() => handleDismissSuggestion(suggestion.id)}
                 >
-                  <Text style={styles.forecastDayText}>{day.day}</Text>
-                  <Text style={styles.forecastTempText}>{day.temp}°</Text>
-                  <Text style={styles.forecastConditionText}>{day.condition}</Text>
-                  {day.precipitation > 0 && (
-                    <View style={styles.rainChanceContainer}>
-                      <Ionicons name="rainy-outline" size={12} color="#00FF7F" />
-                      <Text style={styles.rainChanceText}>{day.precipitation}%</Text>
-                    </View>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.plantCareMessage}>{suggestion.message}</Text>
+              {suggestion.plantId && (
+                <TouchableOpacity 
+                  style={styles.viewPlantButton}
+                  onPress={() => navigation.navigate('PlantDetail', { plantId: suggestion.plantId })}
+                >
+                  <Text style={styles.viewPlantButtonText}>View Plant</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   };
@@ -673,10 +873,12 @@ const HomeScreen = () => {
   // Update weather section render
   const renderWeatherSection = () => {
     if (!weatherDisplayEnabled) {
+      console.log('Weather display is not enabled');
       return null;
     }
 
     if (!locationEnabled) {
+      console.log('Location services are not enabled');
       return (
         <View style={styles.weatherErrorContainer}>
           <Ionicons name="location-off-outline" size={24} color="#FF453A" />
@@ -692,6 +894,7 @@ const HomeScreen = () => {
     }
 
     if (localWeatherError || weatherError) {
+      console.log('Weather error:', localWeatherError || weatherError);
       return (
         <View style={styles.weatherErrorContainer}>
           <Ionicons name="cloud-offline-outline" size={24} color="#FF453A" />
@@ -707,6 +910,7 @@ const HomeScreen = () => {
     }
 
     if (weatherStatus === 'loading' || !weatherData) {
+      console.log('Weather data is loading or not available');
       return (
         <View style={styles.weatherLoadingContainer}>
           <ActivityIndicator size="small" color="#00FF7F" />
@@ -714,6 +918,30 @@ const HomeScreen = () => {
         </View>
       );
     }
+
+    const renderWeatherCard = (isToday, data) => {
+      return (
+        <View style={styles.weatherCard}>
+          <View style={styles.weatherCardHeader}>
+            <Text style={styles.weatherCardTitle}>{isToday ? 'Today' : 'Tomorrow'}</Text>
+            <View style={styles.weatherCardMain}>
+              <Text style={styles.weatherCardTemp}>{data.temp}°</Text>
+              <Text style={styles.weatherCardCondition}>{data.condition}</Text>
+            </View>
+            <View style={styles.weatherCardFooter}>
+              <View style={styles.weatherCardMetric}>
+                <Ionicons name="water-outline" size={16} color="#00FF7F" />
+                <Text style={styles.weatherCardMetricText}>{data.humidity}%</Text>
+              </View>
+              <View style={styles.weatherCardMetric}>
+                <Ionicons name="rainy-outline" size={16} color="#00FF7F" />
+                <Text style={styles.weatherCardMetricText}>{data.chance_of_rain}%</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    };
 
     return (
       <View style={styles.weatherSection}>
@@ -745,47 +973,44 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Current Weather Card */}
-          <View style={styles.currentWeatherCard}>
-            <View style={styles.temperatureContainer}>
-              <Text style={styles.temperatureText}>{weatherData.current.temp}°</Text>
-              <Text style={styles.conditionText}>{weatherData.current.condition}</Text>
-            </View>
-            
-            {/* Weather Details Grid */}
-            <View style={styles.weatherDetailsGrid}>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="water-outline" size={20} color="#00FF7F" />
-                <View style={styles.weatherDetailTextContainer}>
-                  <Text style={styles.weatherDetailLabel}>Humidity</Text>
-                  <Text style={styles.weatherDetailValue}>{weatherData.current.humidity}%</Text>
-                </View>
-              </View>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="speedometer-outline" size={20} color="#00FF7F" />
-                <View style={styles.weatherDetailTextContainer}>
-                  <Text style={styles.weatherDetailLabel}>Wind</Text>
-                  <Text style={styles.weatherDetailValue}>{weatherData.current.wind_kph} km/h</Text>
-                </View>
-              </View>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="thermometer-outline" size={20} color="#00FF7F" />
-                <View style={styles.weatherDetailTextContainer}>
-                  <Text style={styles.weatherDetailLabel}>Feels Like</Text>
-                  <Text style={styles.weatherDetailValue}>{weatherData.current.feelslike_c}°</Text>
-                </View>
-              </View>
-              <View style={styles.weatherDetailItem}>
-                <Ionicons name="sunny-outline" size={20} color="#00FF7F" />
-                <View style={styles.weatherDetailTextContainer}>
-                  <Text style={styles.weatherDetailLabel}>UV Index</Text>
-                  <Text style={styles.weatherDetailValue}>{weatherData.current.uv}</Text>
-                </View>
-              </View>
-            </View>
+          {/* Weather Cards */}
+          <View style={styles.weatherCardsContainer}>
+            {renderWeatherCard(true, weatherData.current)}
+            {weatherData.nextDay && renderWeatherCard(false, weatherData.nextDay)}
           </View>
+
+          {/* Plant Care Suggestions */}
+          {renderPlantCareSuggestions()}
         </LinearGradient>
       </View>
+    );
+  };
+
+  // Add forecast modal
+  const renderForecastModal = () => {
+    if (!selectedForecast) return null;
+
+    return (
+      <Modal
+        visible={isForecastModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsForecastModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedForecast.day}</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setIsForecastModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
@@ -1017,6 +1242,7 @@ const HomeScreen = () => {
           <View style={styles.bottomSpace} />
         </View>
       </Animated.ScrollView>
+      {renderForecastModal()}
     </SafeAreaView>
   );
 };
@@ -1565,8 +1791,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
   },
+  weatherDetailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   weatherDetailTextContainer: {
-    marginLeft: 12,
+    flex: 1,
   },
   weatherDetailLabel: {
     fontSize: 12,
@@ -1578,148 +1813,131 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  forecastCard: {
-    backgroundColor: 'rgba(0, 255, 127, 0.05)',
-    borderRadius: 20,
-    padding: 20,
+  forecastContainer: {
+    marginTop: 24,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    padding: 16,
   },
   forecastTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 16,
   },
-  forecastGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+  nextDayCard: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    padding: 16,
   },
-  forecastItem: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    borderRadius: 16,
-    padding: 12,
+  nextDayHeader: {
     alignItems: 'center',
+    marginBottom: 16,
   },
-  forecastDay: {
-    fontSize: 14,
+  nextDayTemp: {
+    fontSize: 36,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  forecastTemp: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  forecastCondition: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: '#00FF7F',
     marginBottom: 8,
   },
-  forecastDetails: {
-    flexDirection: 'row',
-    gap: 8,
+  nextDayCondition: {
+    fontSize: 18,
+    color: '#FFFFFF',
   },
-  forecastDetailItem: {
+  nextDayMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: 8,
   },
-  forecastDetailText: {
-    marginLeft: 2,
-    fontSize: 10,
+  metricValue: {
+    fontSize: 16,
     color: '#00FF7F',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    width: '90%',
-    maxWidth: 400,
     backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    padding: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 255, 127, 0.1)',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   modalCloseButton: {
-    padding: 8,
+    padding: 4,
   },
   modalBody: {
-    padding: 20,
+    gap: 16,
   },
   modalTemperatureContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   modalTemperatureText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: '600',
+    color: '#00FF7F',
   },
   modalConditionText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 8,
+    color: '#FFFFFF',
+    marginTop: 4,
   },
   modalTempRange: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
+    marginTop: 8,
   },
   modalTempRangeText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#FFFFFF',
   },
   modalDetailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 16,
   },
   modalDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    padding: 12,
-    borderRadius: 16,
-    flex: 1,
-    minWidth: '45%',
+    gap: 8,
+    width: '45%',
   },
   modalDetailTextContainer: {
-    marginLeft: 12,
+    flex: 1,
   },
   modalDetailLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 2,
+    color: '#FFFFFF',
+    opacity: 0.7,
   },
   modalDetailValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#FFFFFF',
   },
   hourlyForecast: {
-    marginTop: 20,
+    marginTop: 16,
   },
   hourlyForecastTitle: {
     fontSize: 16,
@@ -1728,42 +1946,201 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   hourlyItem: {
-    backgroundColor: 'rgba(0, 255, 127, 0.1)',
-    padding: 12,
-    borderRadius: 16,
-    marginRight: 12,
     alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
+    marginRight: 12,
     minWidth: 80,
   },
   hourlyTime: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   hourlyTemp: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#00FF7F',
     marginBottom: 4,
   },
   hourlyCondition: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: '#FFFFFF',
     marginBottom: 4,
+    textAlign: 'center',
   },
   rainChanceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 127, 0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: 4,
   },
   rainChanceText: {
-    marginLeft: 2,
-    fontSize: 10,
+    fontSize: 12,
     color: '#00FF7F',
+  },
+  weatherCardsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  weatherCard: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    borderRadius: 20,
+    padding: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  weatherCardHeader: {
+    alignItems: 'center',
+  },
+  weatherCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  weatherCardMain: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  weatherCardTemp: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  weatherCardCondition: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  weatherCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  weatherCardMetric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  weatherCardMetricText: {
+    fontSize: 14,
+    color: '#00FF7F',
+    fontWeight: '500',
+  },
+  weatherCardDetails: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  weatherDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  weatherDetailItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  weatherDetailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  weatherDetailText: {
+    flex: 1,
+  },
+  weatherDetailLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 2,
+  },
+  weatherDetailValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  plantCareContainer: {
+    marginTop: 20,
+  },
+  plantCareTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  plantCareScroll: {
+    paddingRight: 16,
+  },
+  plantCareCard: {
+    backgroundColor: 'rgba(0, 255, 127, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 280,
+  },
+  highPriorityCard: {
+    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+  },
+  plantCareHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  plantCareIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dismissButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plantCareMessage: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  viewPlantButton: {
+    backgroundColor: 'rgba(0, 255, 127, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  viewPlantButtonText: {
+    color: '#00FF7F',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
