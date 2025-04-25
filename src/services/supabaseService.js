@@ -177,8 +177,8 @@ export const uploadProfileImage = async (uri) => {
     
     // Create a unique file path for the image
     const fileExt = uri.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-    const filePath = `profiles/${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
     
     // Fetch the image data
     const fileInfo = await FileSystem.getInfoAsync(uri);
@@ -190,56 +190,18 @@ export const uploadProfileImage = async (uri) => {
     const response = await fetch(uri);
     const blob = await response.blob();
     
-    // First check if the bucket exists
-    let bucketExists = false;
-    try {
-      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('avatars');
-      bucketExists = !bucketError;
-    } catch (error) {
-      console.log('Error checking bucket:', error.message);
-      bucketExists = false;
-    }
-    
-    // If bucket doesn't exist, create it
-    if (!bucketExists) {
-      try {
-        const { data, error } = await supabase.storage.createBucket('avatars', {
-          public: true,
-          fileSizeLimit: 1024 * 1024 * 2, // 2MB
-        });
-        
-        if (error) {
-          throw error;
-        }
-        
-        console.log('Bucket created successfully');
-      } catch (createError) {
-        console.error('Error creating bucket:', createError.message);
-        // Use a fallback approach - store the local URI in user metadata
-        await supabase.auth.updateUser({
-          data: { avatar_url: uri },
-        });
-        // Return success with the local URI to prevent UI confusion
-        return { publicUrl: uri, error: null };
-      }
-    }
-    
-    // Attempt to upload the image
+    // Upload the image with public access
     const { data, error } = await supabase.storage
       .from('avatars')
       .upload(filePath, blob, {
         contentType: `image/${fileExt}`,
         upsert: true,
+        cacheControl: '3600',
       });
     
     if (error) {
       console.error('Upload failed:', error.message);
-      // Update user metadata with the local URI as fallback
-      await supabase.auth.updateUser({
-        data: { avatar_url: uri },
-      });
-      // Return an error object but with the local URI to prevent UI confusion
-      return { publicUrl: uri, error: { message: 'Image uploaded locally only. It will not persist across devices.' } };
+      throw error;
     }
     
     // Get public URL for the uploaded image
@@ -247,18 +209,143 @@ export const uploadProfileImage = async (uri) => {
       .from('avatars')
       .getPublicUrl(filePath);
     
+    console.log('Upload successful, public URL:', publicUrl);
+    
+    // Verify the public URL is accessible
+    const verifyResponse = await fetch(publicUrl);
+    if (!verifyResponse.ok) {
+      throw new Error('Public URL is not accessible');
+    }
+    
     // Update user metadata with the new avatar URL
-    const { data: userData, error: updateError } = await supabase.auth.updateUser({
+    const { error: updateError } = await supabase.auth.updateUser({
       data: { avatar_url: publicUrl },
     });
     
     if (updateError) throw updateError;
     
+    // Update profile with the new avatar URL
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', user.id);
+    
+    if (profileError) throw profileError;
+    
     return { publicUrl, error: null };
   } catch (error) {
     console.error('Upload error:', error.message);
-    // Return the error but don't show success message in the UI
     return { publicUrl: null, error };
+  }
+};
+
+// Update user profile information
+export const updateUserProfileInfo = async (updates) => {
+  try {
+    const { user, error: userError } = await getCurrentUser();
+    if (userError || !user) throw userError || new Error('No user found');
+
+    // Prepare the update object with only the fields that are provided
+    const updateData = {
+      id: user.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add fields only if they are provided in the updates
+    if (updates.full_name !== undefined) updateData.full_name = updates.full_name;
+    if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.avatar_url !== undefined) updateData.avatar_url = updates.avatar_url;
+
+    console.log('Updating profile with data:', updateData);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(updateData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating profile in database:', error);
+      throw error;
+    }
+
+    console.log('Profile updated in database:', data);
+
+    // Also update auth metadata
+    const authUpdateData = {};
+    if (updates.full_name !== undefined) authUpdateData.full_name = updates.full_name;
+    if (updates.avatar_url !== undefined) authUpdateData.avatar_url = updates.avatar_url;
+
+    // Only update auth if there are fields to update
+    if (Object.keys(authUpdateData).length > 0) {
+      console.log('Updating auth metadata with:', authUpdateData);
+      const { error: authError } = await supabase.auth.updateUser({
+        data: authUpdateData,
+      });
+
+      if (authError) {
+        console.error('Error updating auth metadata:', authError);
+        throw authError;
+      }
+      console.log('Auth metadata updated successfully');
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return { data: null, error };
+  }
+};
+
+// Get user profile information
+export const getUserProfileInfo = async () => {
+  try {
+    const { user, error: userError } = await getCurrentUser();
+    if (userError || !user) throw userError || new Error('No user found');
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        return await createUserProfile(user);
+      }
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error getting profile:', error);
+    return { data: null, error };
+  }
+};
+
+// Create user profile
+const createUserProfile = async (user) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: user.id,
+          full_name: user.user_metadata?.full_name || '',
+          email: user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    return { data: null, error };
   }
 };
 
@@ -276,4 +363,6 @@ export default {
   saveThemePreference,
   getUserThemePreference,
   uploadProfileImage,
+  updateUserProfileInfo,
+  getUserProfileInfo,
 };

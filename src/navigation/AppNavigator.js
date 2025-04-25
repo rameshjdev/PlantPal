@@ -73,6 +73,7 @@ const HomeStack = () => {
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="AllAlerts" component={AllAlertsScreen} />
       <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
     </Stack.Navigator>
   );
 };

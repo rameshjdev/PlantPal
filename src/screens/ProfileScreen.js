@@ -14,19 +14,25 @@ import {
   StatusBar,
   Platform,
   Modal,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Linking
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../context/AuthContext';
-import { signOut, uploadProfileImage, updateUserProfile } from '../services/supabaseService';
+import { 
+  signOut, 
+  updateUserProfileInfo, 
+  getUserProfileInfo,
+  uploadProfileImage
+} from '../services/supabaseService';
 
 // Add EditProfileModal component
 const EditProfileModal = ({ visible, onClose, onSave, userData }) => {
@@ -123,6 +129,7 @@ const ProfileScreen = () => {
   const [weatherAlerts, setWeatherAlerts] = useState(false);
   const [weatherEnabled, setWeatherEnabled] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   
   // Edit profile states
   const [isEditing, setIsEditing] = useState(false);
@@ -130,18 +137,76 @@ const ProfileScreen = () => {
   const [editedEmail, setEditedEmail] = useState('');
   
   // Format user data from auth context
-  const userData = {
+  const [userData, setUserData] = useState({
     name: user?.user_metadata?.full_name || 'Plant Lover',
     email: user?.email || 'user@example.com',
     joinDate: user ? formatJoinDate(user.created_at) : 'New User',
     plantsCount: collectionCount,
     favoritesCount: favoritesCount,
-    avatar: user?.user_metadata?.avatar_url ? { uri: user.user_metadata.avatar_url } : require('../../assets/profile.png'),
-  };
+    avatar: require('../../assets/profile.png'),
+  });
   
   // State for image upload loading
   const [isUploading, setIsUploading] = useState(false);
   
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  // Load profile data from Supabase
+  const loadProfileData = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const { data, error } = await getUserProfileInfo();
+      if (error) throw error;
+      
+      console.log('Profile data from Supabase:', data);
+      
+      if (data) {
+        // Validate the avatar URL
+        let avatarUrl = null;
+        if (data.avatar_url) {
+          try {
+            // Add a timestamp to prevent caching
+            avatarUrl = `${data.avatar_url}?t=${Date.now()}`;
+            console.log('Setting avatar URL with cache buster:', avatarUrl);
+            
+            // Test if the URL is valid and accessible
+            const response = await fetch(avatarUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to load avatar: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.startsWith('image/')) {
+              throw new Error('Invalid content type for avatar');
+            }
+            
+            console.log('Avatar URL is valid and accessible:', avatarUrl);
+          } catch (urlError) {
+            console.error('Error validating avatar URL:', urlError);
+            // Don't set avatarUrl if validation fails
+          }
+        }
+        
+        setUserData(prev => ({
+          ...prev,
+          name: data.full_name || prev.name,
+          email: data.email || prev.email,
+          avatar: avatarUrl ? { uri: avatarUrl } : require('../../assets/profile.png'),
+        }));
+        
+        console.log('Updated userData with avatar:', avatarUrl ? 'URL set' : 'Using default image');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile data. Please try again.');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   // Load saved settings on component mount
   useEffect(() => {
     loadSettings();
@@ -295,28 +360,59 @@ const ProfileScreen = () => {
     return `${month} ${year}`;
   }
 
-  // Handle profile image selection
+  // Handle profile photo selection
   const handleSelectProfileImage = async () => {
     try {
+      // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library to update your profile picture.');
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photo library to update your profile picture.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ]
+        );
         return;
       }
       
+      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
+        allowsMultipleSelection: false,
       });
       
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadProfilePhoto(result.assets[0].uri);
+      if (result.canceled) {
+        console.log('User cancelled image picker');
+        return;
       }
+      
+      if (!result.assets || result.assets.length === 0) {
+        throw new Error('No image selected');
+      }
+      
+      const selectedImage = result.assets[0];
+      console.log('Selected image:', selectedImage);
+      
+      await uploadProfilePhoto(selectedImage.uri);
     } catch (error) {
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      console.error('Error in handleSelectProfileImage:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to select image. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
   
@@ -338,21 +434,41 @@ const ProfileScreen = () => {
   
   // Upload profile photo to Supabase storage
   const uploadProfilePhoto = async (uri) => {
-    setIsUploading(true);
     try {
-      const { publicUrl, error } = await uploadProfileImage(uri);
+      setIsUploading(true);
+      console.log('Starting profile photo upload with URI:', uri);
       
-      if (error) {
-        if (publicUrl) {
-          Alert.alert('Partial Success', 'The profile photo has been saved locally but not uploaded to the server. It may not appear on other devices.');
-        } else {
-          throw error;
-        }
+      // Upload the image to Supabase
+      const { data, error } = await uploadProfileImage(uri);
+      if (error) throw error;
+      
+      console.log('Upload response:', data);
+      
+      if (data?.publicUrl) {
+        // Add cache buster to the URL
+        const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+        console.log('Setting new avatar URL:', avatarUrl);
+        
+        // Update the user's profile with the new avatar URL
+        const { error: updateError } = await updateUserProfileInfo({
+          avatar_url: data.publicUrl,
+        });
+          
+        if (updateError) throw updateError;
+        
+        // Update local state with the new avatar URL
+        setUserData(prev => ({
+          ...prev,
+          avatar: { uri: avatarUrl }
+        }));
+        
+        console.log('Profile photo updated successfully');
       } else {
-        Alert.alert('Success', 'Profile picture updated successfully!');
+        throw new Error('No public URL returned from upload');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to upload profile picture. Please try again.');
+      console.error('Error uploading profile photo:', error);
+      Alert.alert('Error', 'Failed to upload profile photo. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -375,13 +491,15 @@ const ProfileScreen = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const handleEditProfile = () => {
+    setEditedName(userData.name);
+    setEditedEmail(userData.email);
     setIsEditModalVisible(true);
   };
 
-  // Add handleSaveProfile function
+  // Handle save profile
   const handleSaveProfile = async (updatedData) => {
     try {
-      const { error } = await updateUserProfile({
+      const { error } = await updateUserProfileInfo({
         full_name: updatedData.name,
         email: updatedData.email,
       });
@@ -389,8 +507,11 @@ const ProfileScreen = () => {
       if (error) throw error;
 
       // Update the user data immediately
-      userData.name = updatedData.name;
-      userData.email = updatedData.email;
+      setUserData(prev => ({
+        ...prev,
+        name: updatedData.name,
+        email: updatedData.email,
+      }));
 
       Alert.alert('Success', 'Profile updated successfully!');
       setIsEditModalVisible(false);
@@ -435,7 +556,7 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={[styles.backgroundGradient, { backgroundColor: '#1A1A1A' }]}>
+      <View style={[styles.backgroundGradient, { backgroundColor: '#1A1A1A' }]}> 
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -444,16 +565,49 @@ const ProfileScreen = () => {
           {/* Profile Header */}
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              <Image source={userData.avatar} style={styles.avatar} />
+              {typeof userData.avatar === 'string' ? (
+                <Image 
+                  source={{ 
+                    uri: userData.avatar,
+                    cache: 'reload',
+                    headers: {
+                      'Cache-Control': 'no-cache',
+                      'Pragma': 'no-cache'
+                    }
+                  }}
+                  style={styles.avatar}
+                  defaultSource={require('../../assets/profile.png')}
+                  onError={(error) => {
+                    console.error('Image loading error:', error.nativeEvent);
+                    // Fallback to default image on error
+                    setUserData(prev => ({
+                      ...prev,
+                      avatar: require('../../assets/profile.png')
+                    }));
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', userData.avatar);
+                  }}
+                />
+              ) : (
+                <Image 
+                  source={userData.avatar}
+                  style={styles.avatar}
+                />
+              )}
               <View style={[styles.avatarGradient, { backgroundColor: 'rgba(0,0,0,0.7)' }]} />
               <TouchableOpacity 
-                style={styles.editAvatarButton} 
+                style={styles.editAvatarButton}
                 onPress={showProfilePhotoOptions}
+                disabled={isUploading}
               >
-                <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
+                {isUploading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
+                )}
               </TouchableOpacity>
             </View>
-            
             <View style={styles.userInfo}>
               {isEditing ? (
                 <>
